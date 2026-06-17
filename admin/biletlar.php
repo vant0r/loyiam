@@ -93,7 +93,7 @@ render_head(t('tickets'));
     <div class="page-title"><?= icon('ticket', 28) ?> <?= t('tickets') ?></div>
     <div class="flex gap-2">
       <button type="button" class="btn btn-light" data-modal-open="autoModal"><?= icon('zap', 16) ?> Auto</button>
-      <button type="button" class="btn btn-primary" onclick='openTicketModal({})'><?= icon('plus', 16) ?> <?= t('add') ?></button>
+      <a href="/admin/biletlar-form.php" class="btn btn-primary"><?= icon('plus', 16) ?> <?= t('add') ?></a>
     </div>
   </div>
 

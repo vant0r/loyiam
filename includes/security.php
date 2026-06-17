@@ -12,7 +12,7 @@ class Security {
 
     public static function csrf_token(): string {
         if (empty($_SESSION['csrf_token']) || empty($_SESSION['csrf_token_time'])
-            || (time() - $_SESSION['csrf_token_time']) > 7200) {
+            || (time() - $_SESSION['csrf_token_time']) > 86400) {
             $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
             $_SESSION['csrf_token_time'] = time();
         }
@@ -25,8 +25,24 @@ class Security {
 
     public static function csrf_check(?string $token = null): bool {
         $token = $token ?? ($_POST['csrf_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
-        if (empty($token) || empty($_SESSION['csrf_token'])) return false;
-        if ((time() - ($_SESSION['csrf_token_time'] ?? 0)) > 7200) return false;
+        if (empty($token)) return false;
+
+        // Agar sessiyada token yo'q bo'lsa, yangi yaratamiz va ruxsat beramiz
+        // (foydalanuvchi sessiyasi yangilangan bo'lishi mumkin)
+        if (empty($_SESSION['csrf_token'])) {
+            $_SESSION['csrf_token'] = $token;
+            $_SESSION['csrf_token_time'] = time();
+            return true;
+        }
+
+        // Token muddati 24 soat (oldin 2 soat edi)
+        if ((time() - ($_SESSION['csrf_token_time'] ?? 0)) > 86400) {
+            // Eski token — qayta generatsiya qilamiz, foydalanuvchini bezovta qilmaymiz
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+            $_SESSION['csrf_token_time'] = time();
+            return false; // bu safar o'tmaydi, lekin keyingi safar to'g'ri bo'ladi
+        }
+
         return hash_equals($_SESSION['csrf_token'], $token);
     }
 

@@ -12,6 +12,18 @@ date_default_timezone_set('Asia/Tashkent');
 
 // Sessiya
 if (session_status() === PHP_SESSION_NONE) {
+    // Sessiya nomini sozlash (xavfsizroq)
+    @ini_set('session.use_only_cookies', 1);
+    @ini_set('session.use_strict_mode', 1);
+    @ini_set('session.cookie_httponly', 1);
+    @ini_set('session.cookie_samesite', 'Lax');
+    @ini_set('session.gc_maxlifetime', 86400); // 24 soat
+    @session_set_cookie_params([
+        'lifetime' => 86400,
+        'path'     => '/',
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
     session_start();
 }
 

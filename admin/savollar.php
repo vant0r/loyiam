@@ -140,7 +140,7 @@ render_head(t('questions'));
     </div>
     <div class="flex gap-2">
       <button type="button" class="btn btn-light" data-modal-open="csvModal"><?= icon('upload', 16) ?> CSV</button>
-      <button type="button" class="btn btn-primary" onclick='openQModal({})'><?= icon('plus', 16) ?> <?= t('add') ?></button>
+      <a href="/admin/savollar-form.php" class="btn btn-primary"><?= icon('plus', 16) ?> <?= t('add') ?></a>
     </div>
   </div>
 

@@ -83,9 +83,9 @@ render_head(t('tariffs'));
 <main class="main">
   <div class="page-header">
     <div class="page-title"><?= icon('gem', 28) ?> <?= t('tariffs') ?></div>
-    <button type="button" class="btn btn-primary" onclick='openTariffModal({})'>
+    <a href="/admin/tariflar-form.php" class="btn btn-primary">
       <?= icon('plus', 16) ?> <?= t('add') ?>
-    </button>
+    </a>
   </div>
 
   <?php if ($msg): ?><div class="alert alert-success"><?= icon('check-circle', 18) ?> <?= e($msg) ?></div><?php endif; ?>

@@ -110,9 +110,9 @@ render_head(t('users'));
 <main class="main">
   <div class="page-header">
     <div class="page-title"><?= icon('users', 28) ?> <?= t('users') ?></div>
-    <button type="button" class="btn btn-primary" onclick='openUserModal({})'>
+    <a href="/admin/users-form.php" class="btn btn-primary">
       <?= icon('plus', 16) ?> <?= t('add') ?>
-    </button>
+    </a>
   </div>
 
   <?php if ($msg): ?><div class="alert alert-success"><?= icon('check-circle', 18) ?> <?= e($msg) ?></div><?php endif; ?>

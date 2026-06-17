@@ -83,6 +83,12 @@ render_head($mode === 'register' ? t('register') : t('login'));
                data-text="signin_with" data-size="large" data-logo_alignment="left" data-width="100%"></div>
 
           <div class="auth-divider"><span><?= lang()==='uz_cyrillic' ? "ёки" : "yoki" ?></span></div>
+          <?php else: ?>
+          <button type="button" class="btn-google-disabled" onclick="alert('Google sign-in admin tomonidan sozlanmagan. Sozlash uchun: /admin/sozlamalar.php?tab=auth')">
+            <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/><path fill="#FF3D00" d="m6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C16.318 4 9.656 8.337 6.306 14.691z"/><path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002l6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/></svg>
+            <span>Google bilan kirish (admin sozlamagan)</span>
+          </button>
+          <div class="auth-divider"><span><?= lang()==='uz_cyrillic' ? "ёки" : "yoki" ?></span></div>
           <?php endif; ?>
 
           <?php if ($loginErr): ?>
@@ -160,6 +166,12 @@ render_head($mode === 'register' ? t('register') : t('login'));
           <?php if ($google_client_id): ?>
           <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="outline"
                data-text="signup_with" data-size="large" data-logo_alignment="left" data-width="100%"></div>
+          <div class="auth-divider"><span><?= lang()==='uz_cyrillic' ? "ёки" : "yoki" ?></span></div>
+          <?php else: ?>
+          <button type="button" class="btn-google-disabled" onclick="alert('Google sign-in admin tomonidan sozlanmagan')">
+            <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/><path fill="#FF3D00" d="m6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C16.318 4 9.656 8.337 6.306 14.691z"/><path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002l6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/></svg>
+            <span>Google bilan ro'yxatdan o'tish (sozlanmagan)</span>
+          </button>
           <div class="auth-divider"><span><?= lang()==='uz_cyrillic' ? "ёки" : "yoki" ?></span></div>
           <?php endif; ?>
 
@@ -399,6 +411,12 @@ body{margin:0;padding:0;overflow-x:hidden}
   font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;
   transition:all .25s var(--ease-soft);box-shadow:0 8px 20px rgba(59,130,246,.3)}
 .btn-auth-primary:hover{filter:brightness(1.05);box-shadow:0 12px 28px rgba(59,130,246,.4)}
+
+.btn-google-disabled{display:inline-flex;align-items:center;justify-content:center;gap:10px;
+  width:100%;padding:12px 20px;border-radius:10px;background:#fff;color:#3c4043;
+  border:1.5px solid #dadce0;font-weight:500;font-size:14px;cursor:pointer;font-family:inherit;
+  transition:all .25s;opacity:.7}
+.btn-google-disabled:hover{background:#F8F9FA;border-color:#dadce0;opacity:1}
 
 /* Google sign-in container */
 .g_id_signin{margin-bottom:14px}
