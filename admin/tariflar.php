@@ -2,25 +2,31 @@
 require_once __DIR__ . '/../includes/auth.php';
 require_admin();
 
-$msg = ''; $err = '';
+$msg = flash('msg');
+$err = flash('err');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $redir = $_SERVER['REQUEST_URI'];
     if (!csrf_check()) {
-        $err = t('csrf_invalid');
-    } else {
-        $action = $_POST['action'] ?? '';
-        $id = (int)($_POST['id'] ?? 0);
+        flash('err', 'CSRF xatosi. Sahifani yangilang.');
+        header("Location: $redir"); exit;
+    }
 
+    $action = $_POST['action'] ?? '';
+    $id = (int)($_POST['id'] ?? 0);
+
+    try {
         if ($action === 'delete' && $id) {
             db()->execute("DELETE FROM tariffs WHERE id=?", [$id]);
             audit('tariff_deleted', "Tariff #$id", 'warning');
-            $msg = t('deleted_success');
+            flash('msg', t('deleted_success'));
         }
-
-        if ($action === 'add' || ($action === 'edit' && $id)) {
+        elseif ($action === 'add' || ($action === 'edit' && $id)) {
             $name_lat = Security::clean($_POST['name_latin'] ?? '', 100);
             $name_cyr = Security::clean($_POST['name_cyrillic'] ?? '', 100);
             if (!$name_cyr && $name_lat) $name_cyr = uz_latin_to_cyrillic($name_lat);
+
+            if (!$name_lat) throw new Exception('Tarif nomi kerak');
 
             $desc_lat = Security::clean($_POST['description_latin'] ?? '', 500);
             $desc_cyr = Security::clean($_POST['description_cyrillic'] ?? '', 500);
@@ -41,15 +47,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 (int)($_POST['sort_order'] ?? 0),
             ];
 
-            if (!$name_lat) {
-                $err = t('fill_required');
-            } elseif ($action === 'add') {
+            if ($action === 'add') {
                 db()->execute(
                     "INSERT INTO tariffs (name_latin, name_cyrillic, description_latin, description_cyrillic,
                     price, duration_days, features_latin, features_cyrillic, tests_per_day, is_popular, status, sort_order)
                     VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", $data);
                 audit('tariff_added', "Tariff: $name_lat");
-                $msg = t('saved_success');
+                flash('msg', t('saved_success'));
             } else {
                 $data[] = $id;
                 db()->execute(
@@ -57,10 +61,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     price=?, duration_days=?, features_latin=?, features_cyrillic=?, tests_per_day=?, is_popular=?, status=?, sort_order=?
                     WHERE id=?", $data);
                 audit('tariff_updated', "Tariff #$id");
-                $msg = t('updated_success');
+                flash('msg', t('updated_success'));
             }
         }
+        else {
+            throw new Exception('Notog\'ri amal');
+        }
+    } catch (Throwable $e) {
+        flash('err', 'Xatolik: ' . $e->getMessage());
     }
+    header("Location: $redir"); exit;
 }
 
 $tariffs = db()->fetchAll("SELECT * FROM tariffs ORDER BY sort_order, id");
@@ -73,7 +83,7 @@ render_head(t('tariffs'));
 <main class="main">
   <div class="page-header">
     <div class="page-title"><?= icon('gem', 28) ?> <?= t('tariffs') ?></div>
-    <button class="btn btn-primary" onclick='openTariffModal({})'>
+    <button type="button" class="btn btn-primary" onclick='openTariffModal({})'>
       <?= icon('plus', 16) ?> <?= t('add') ?>
     </button>
   </div>
@@ -81,18 +91,17 @@ render_head(t('tariffs'));
   <?php if ($msg): ?><div class="alert alert-success"><?= icon('check-circle', 18) ?> <?= e($msg) ?></div><?php endif; ?>
   <?php if ($err): ?><div class="alert alert-danger"><?= icon('x-circle', 18) ?> <?= e($err) ?></div><?php endif; ?>
 
-  <!-- Tariffs grid -->
   <?php if (empty($tariffs)): ?>
     <div class="card empty-state">
       <?= icon('gem', 64) ?>
-      <h3 class="mt-2"><?= lang()==='uz_cyrillic' ? "Тарифлар йўқ" : "Tariflar yo'q" ?></h3>
+      <h3 class="mt-2">Tariflar yo'q</h3>
     </div>
   <?php else: ?>
-  <div class="grid-3 stagger">
+  <div class="grid-3">
     <?php foreach ($tariffs as $t):
       $features = explode('|', $t['features_'.$lang_field] ?? '');
     ?>
-    <div class="card pricing-card <?= $t['is_popular']?'popular':'' ?> <?= $t['status']==='inactive'?'is-inactive':'' ?>" style="<?= $t['status']==='inactive'?'opacity:.6':'' ?>">
+    <div class="card pricing-card <?= $t['is_popular']?'popular':'' ?>" style="<?= $t['status']==='inactive'?'opacity:.6':'' ?>">
       <?php if ($t['is_popular']): ?>
         <div class="pricing-badge"><?= t('popular') ?></div>
       <?php endif; ?>
@@ -112,7 +121,8 @@ render_head(t('tariffs'));
         <?php foreach (array_slice($features, 0, 4) as $f): if (trim($f)) echo '<li>'.e(trim($f)).'</li>'; endforeach; ?>
       </ul>
       <div class="flex gap-1 mt-3">
-        <button class="btn btn-light btn-sm flex-1" onclick='openTariffModal(<?= json_encode($t, JSON_HEX_APOS|JSON_HEX_QUOT|JSON_UNESCAPED_UNICODE) ?>)'>
+        <button type="button" class="btn btn-light btn-sm flex-1"
+          onclick='openTariffModal(<?= json_encode($t, JSON_HEX_APOS|JSON_HEX_QUOT|JSON_UNESCAPED_UNICODE) ?>)'>
           <?= icon('edit', 12) ?> <?= t('edit') ?>
         </button>
         <form method="post" style="display:inline" onsubmit="return confirm('<?= t('confirm_delete') ?>')">
@@ -129,14 +139,13 @@ render_head(t('tariffs'));
 </main>
 </div>
 
-<!-- Tariff modal -->
 <div id="tariffModal" class="modal-backdrop">
   <div class="modal modal-lg">
     <div class="modal-header">
       <h3 class="modal-title" id="tariffModalTitle"><?= t('add') ?></h3>
-      <button class="modal-close" data-modal-close>&times;</button>
+      <button type="button" class="modal-close" data-modal-close>&times;</button>
     </div>
-    <form method="post">
+    <form method="post" action="">
       <?= csrf_field() ?>
       <input type="hidden" name="action" id="t_action" value="add">
       <input type="hidden" name="id" id="t_id">
@@ -152,16 +161,14 @@ render_head(t('tariffs'));
             <input type="text" name="name_cyrillic" id="t_nc" class="form-control" maxlength="100">
           </div>
         </div>
-
         <div class="form-group">
           <label class="form-label">Tavsif (Lotin)</label>
           <textarea name="description_latin" id="t_dl" class="form-control" rows="2" maxlength="500"></textarea>
         </div>
         <div class="form-group">
-          <label class="form-label">Тавсиф (Кирилл) <small class="text-mute">— bo'sh = avto</small></label>
+          <label class="form-label">Тавсиф (Кирилл)</label>
           <textarea name="description_cyrillic" id="t_dc" class="form-control" rows="2" maxlength="500"></textarea>
         </div>
-
         <div class="form-row" style="grid-template-columns:1fr 1fr 1fr;gap:12px">
           <div class="form-group">
             <label class="form-label">Narx (so'm)</label>
@@ -176,16 +183,14 @@ render_head(t('tariffs'));
             <input type="number" name="tests_per_day" id="t_tpd" class="form-control" value="999" min="0" max="999">
           </div>
         </div>
-
         <div class="form-group">
           <label class="form-label">Xususiyatlar (Lotin) <small class="text-mute">— | bilan ajrating</small></label>
           <textarea name="features_latin" id="t_fl" class="form-control" rows="3" maxlength="1000" placeholder="Cheksiz testlar|Barcha biletlar|Statistika"></textarea>
         </div>
         <div class="form-group">
-          <label class="form-label">Хусусиятлар (Кирилл) <small class="text-mute">— bo'sh = avto</small></label>
+          <label class="form-label">Хусусиятлар (Кирилл)</label>
           <textarea name="features_cyrillic" id="t_fc" class="form-control" rows="3" maxlength="1000"></textarea>
         </div>
-
         <div class="form-row" style="grid-template-columns:auto 1fr 1fr;gap:14px;align-items:end">
           <div class="form-group" style="margin-bottom:0">
             <label class="form-check" style="margin-top:18px">
@@ -209,7 +214,7 @@ render_head(t('tariffs'));
 
       <div class="modal-footer">
         <button type="button" class="btn btn-light" data-modal-close><?= t('cancel') ?></button>
-        <button type="submit" class="btn btn-primary"><?= t('save') ?></button>
+        <button type="submit" class="btn btn-primary"><?= icon('check', 14) ?> <?= t('save') ?></button>
       </div>
     </form>
   </div>

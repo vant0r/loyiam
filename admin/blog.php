@@ -2,68 +2,77 @@
 require_once __DIR__ . '/../includes/auth.php';
 require_admin();
 
-$msg = ''; $err = '';
+$msg = flash('msg');
+$err = flash('err');
+$lang_field = lang() === 'uz_cyrillic' ? 'cyrillic' : 'latin';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!csrf_check()) {
-        $err = t('csrf_invalid');
-    } else {
+    $redir = $_SERVER['REQUEST_URI'];
+    if (!csrf_check()) { flash('err', 'CSRF xatosi'); header("Location: $redir"); exit; }
+
     $action = $_POST['action'] ?? '';
     $id = (int)($_POST['id'] ?? 0);
 
-    if ($action === 'delete' && $id) {
-        db()->execute("DELETE FROM blog_posts WHERE id=?", [$id]);
-        $msg = t('deleted_success');
-    }
-    if ($action === 'publish' && $id) {
-        db()->execute("UPDATE blog_posts SET status='published' WHERE id=?", [$id]);
-        $msg = lang()==='uz_cyrillic' ? 'Чоп этилди' : 'Chop etildi';
-    }
-    if ($action === 'draft' && $id) {
-        db()->execute("UPDATE blog_posts SET status='draft' WHERE id=?", [$id]);
-        $msg = 'Draft';
-    }
-    if ($action === 'add' || $action === 'edit') {
-        $title_lat = Security::clean($_POST['title_latin'] ?? '', 250);
-        $title_cyr = Security::clean($_POST['title_cyrillic'] ?? '', 250);
-        if (!$title_cyr && $title_lat) $title_cyr = uz_latin_to_cyrillic($title_lat);
-
-        $excerpt_lat = Security::clean($_POST['excerpt_latin'] ?? '', 500);
-        $excerpt_cyr = Security::clean($_POST['excerpt_cyrillic'] ?? '', 500);
-        if (!$excerpt_cyr && $excerpt_lat) $excerpt_cyr = uz_latin_to_cyrillic($excerpt_lat);
-
-        $content_lat = $_POST['content_latin'] ?? '';
-        $content_cyr = $_POST['content_cyrillic'] ?? '';
-        if (!$content_cyr && $content_lat) $content_cyr = uz_latin_to_cyrillic($content_lat);
-
-        $slug    = Security::clean($_POST['slug'] ?? '', 250) ?: strtolower(preg_replace('/[^a-z0-9]+/i', '-', $title_lat));
-        $category = Security::clean($_POST['category'] ?? '', 100);
-        $status   = in_array($_POST['status'] ?? '', ['draft','published']) ? $_POST['status'] : 'draft';
-
-        // Image upload
-        $image = $_POST['old_image'] ?? null;
-        if (!empty($_FILES['image']['name'])) {
-            $up = Security::upload_image($_FILES['image'], 'blog');
-            if ($up['ok']) $image = $up['url'];
+    try {
+        if ($action === 'delete' && $id) {
+            db()->execute("DELETE FROM blog_posts WHERE id=?", [$id]);
+            flash('msg', t('deleted_success'));
         }
-
-        if ($action === 'add') {
-            db()->execute(
-                "INSERT INTO blog_posts (title_latin, title_cyrillic, slug, excerpt_latin, excerpt_cyrillic,
-                 content_latin, content_cyrillic, image, category, status)
-                 VALUES (?,?,?,?,?,?,?,?,?,?)",
-                [$title_lat, $title_cyr, $slug, $excerpt_lat, $excerpt_cyr,
-                 $content_lat, $content_cyr, $image, $category, $status]);
-            $msg = t('saved_success');
-        } else {
-            db()->execute(
-                "UPDATE blog_posts SET title_latin=?, title_cyrillic=?, slug=?, excerpt_latin=?, excerpt_cyrillic=?,
-                 content_latin=?, content_cyrillic=?, image=?, category=?, status=? WHERE id=?",
-                [$title_lat, $title_cyr, $slug, $excerpt_lat, $excerpt_cyr,
-                 $content_lat, $content_cyr, $image, $category, $status, $id]);
-            $msg = t('updated_success');
+        elseif ($action === 'publish' && $id) {
+            db()->execute("UPDATE blog_posts SET status='published' WHERE id=?", [$id]);
+            flash('msg', 'Chop etildi');
         }
+        elseif ($action === 'draft' && $id) {
+            db()->execute("UPDATE blog_posts SET status='draft' WHERE id=?", [$id]);
+            flash('msg', 'Draft\'ga olindi');
+        }
+        elseif ($action === 'add' || ($action === 'edit' && $id)) {
+            $title_lat = Security::clean($_POST['title_latin'] ?? '', 250);
+            $title_cyr = Security::clean($_POST['title_cyrillic'] ?? '', 250);
+            if (!$title_cyr && $title_lat) $title_cyr = uz_latin_to_cyrillic($title_lat);
+            if (!$title_lat) throw new Exception('Sarlavha kerak');
+
+            $excerpt_lat = Security::clean($_POST['excerpt_latin'] ?? '', 500);
+            $excerpt_cyr = Security::clean($_POST['excerpt_cyrillic'] ?? '', 500);
+            if (!$excerpt_cyr && $excerpt_lat) $excerpt_cyr = uz_latin_to_cyrillic($excerpt_lat);
+
+            $content_lat = $_POST['content_latin'] ?? '';
+            $content_cyr = $_POST['content_cyrillic'] ?? '';
+            if (!$content_cyr && $content_lat) $content_cyr = uz_latin_to_cyrillic($content_lat);
+
+            $slug    = Security::clean($_POST['slug'] ?? '', 250) ?: strtolower(preg_replace('/[^a-z0-9]+/i', '-', $title_lat));
+            $category = Security::clean($_POST['category'] ?? '', 100);
+            $status   = in_array($_POST['status'] ?? '', ['draft','published']) ? $_POST['status'] : 'draft';
+
+            $image = $_POST['old_image'] ?? null;
+            if (!empty($_FILES['image']['name'])) {
+                $up = Security::upload_image($_FILES['image'], 'blog');
+                if ($up['ok']) { $image = $up['url']; @chmod(BASE_PATH . $up['url'], 0644); }
+                else throw new Exception('Rasm: ' . $up['error']);
+            }
+
+            if ($action === 'add') {
+                db()->execute(
+                    "INSERT INTO blog_posts (title_latin, title_cyrillic, slug, excerpt_latin, excerpt_cyrillic,
+                     content_latin, content_cyrillic, image, category, status)
+                     VALUES (?,?,?,?,?,?,?,?,?,?)",
+                    [$title_lat, $title_cyr, $slug, $excerpt_lat, $excerpt_cyr,
+                     $content_lat, $content_cyr, $image, $category, $status]);
+                flash('msg', t('saved_success'));
+            } else {
+                db()->execute(
+                    "UPDATE blog_posts SET title_latin=?, title_cyrillic=?, slug=?, excerpt_latin=?, excerpt_cyrillic=?,
+                     content_latin=?, content_cyrillic=?, image=?, category=?, status=? WHERE id=?",
+                    [$title_lat, $title_cyr, $slug, $excerpt_lat, $excerpt_cyr,
+                     $content_lat, $content_cyr, $image, $category, $status, $id]);
+                flash('msg', t('updated_success'));
+            }
+        }
+        else { throw new Exception('Notog\'ri amal'); }
+    } catch (Throwable $e) {
+        flash('err', 'Xatolik: ' . $e->getMessage());
     }
-    } // end csrf else
+    header("Location: $redir"); exit;
 }
 
 $search = trim($_GET['q'] ?? '');
@@ -72,9 +81,7 @@ if ($search) {
     $where .= " AND (title_latin LIKE ? OR title_cyrillic LIKE ?)";
     $params[] = "%$search%"; $params[] = "%$search%";
 }
-
 $posts = db()->fetchAll("SELECT * FROM blog_posts WHERE $where ORDER BY created_at DESC LIMIT 100", $params);
-$lang_field = lang() === 'uz_cyrillic' ? 'cyrillic' : 'latin';
 
 render_head(t('blog'));
 ?>
@@ -83,30 +90,25 @@ render_head(t('blog'));
 <main class="main">
   <div class="page-header">
     <div class="page-title"><?= icon('edit', 28) ?> <?= t('blog') ?></div>
-    <button class="btn btn-primary" onclick="openEditModal({})">
+    <button type="button" class="btn btn-primary" onclick="openEditModal({})">
       <?= icon('plus', 16) ?> <?= t('add') ?>
     </button>
   </div>
 
-  <?php if ($msg): ?><div class="alert alert-success"><?= e($msg) ?></div><?php endif; ?>
+  <?php if ($msg): ?><div class="alert alert-success"><?= icon('check-circle', 18) ?> <?= e($msg) ?></div><?php endif; ?>
   <?php if (!empty($err)): ?><div class="alert alert-danger"><?= icon('x-circle', 18) ?> <?= e($err) ?></div><?php endif; ?>
 
-  <!-- Search -->
-  <form method="get" class="card mb-3" style="display:flex;gap:12px;align-items:end">
+  <form method="get" class="card mb-3" style="display:flex;gap:12px;align-items:end" data-no-loading>
     <div class="form-group flex-1" style="margin-bottom:0">
       <input type="text" name="q" class="form-control" value="<?= e($search) ?>" placeholder="<?= t('search') ?>...">
     </div>
     <button class="btn btn-primary"><?= icon('search', 14) ?></button>
   </form>
 
-  <!-- Grid -->
   <?php if (empty($posts)): ?>
-    <div class="card empty-state">
-      <?= icon('document', 64) ?>
-      <h3 class="mt-2"><?= lang()==='uz_cyrillic' ? "Постлар йўқ" : "Postlar yo'q" ?></h3>
-    </div>
+    <div class="card empty-state"><?= icon('document', 64) ?><h3 class="mt-2">Postlar yo'q</h3></div>
   <?php else: ?>
-  <div class="grid-3 stagger">
+  <div class="grid-3">
     <?php foreach ($posts as $p): ?>
     <div class="card" style="padding:0;overflow:hidden">
       <div style="aspect-ratio:16/9;background:linear-gradient(135deg,var(--primary-light),#fff);position:relative;display:flex;align-items:center;justify-content:center;font-size:48px;color:var(--primary)">
@@ -124,12 +126,10 @@ render_head(t('blog'));
           <?= date('d.m.Y', strtotime($p['created_at'])) ?> · 👁 <?= (int)$p['views'] ?>
         </div>
         <div class="flex gap-1 flex-wrap">
-          <button class="btn btn-light btn-sm" onclick='openEditModal(<?= json_encode($p, JSON_UNESCAPED_UNICODE | JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'>
+          <button type="button" class="btn btn-light btn-sm" onclick='openEditModal(<?= json_encode($p, JSON_UNESCAPED_UNICODE | JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'>
             <?= icon('edit', 12) ?>
           </button>
-          <a href="/blog-post.php?slug=<?= e($p['slug']) ?>" target="_blank" class="btn btn-light btn-sm">
-            <?= icon('eye', 12) ?>
-          </a>
+          <a href="/blog-post.php?slug=<?= e($p['slug']) ?>" target="_blank" class="btn btn-light btn-sm"><?= icon('eye', 12) ?></a>
           <?php if ($p['status'] === 'draft'): ?>
             <form method="post" style="display:inline">
               <?= csrf_field() ?>
@@ -160,45 +160,39 @@ render_head(t('blog'));
 </main>
 </div>
 
-<!-- Edit modal -->
 <div id="editModal" class="modal-backdrop">
   <div class="modal modal-xl">
     <div class="modal-header">
       <h3 class="modal-title" id="modalTitle"><?= t('add') ?></h3>
-      <button class="modal-close" data-modal-close>&times;</button>
+      <button type="button" class="modal-close" data-modal-close>&times;</button>
     </div>
-    <form method="post" enctype="multipart/form-data">
+    <form method="post" enctype="multipart/form-data" action="">
       <?= csrf_field() ?>
       <input type="hidden" name="action" id="m_action" value="add">
       <input type="hidden" name="id" id="m_id">
       <input type="hidden" name="old_image" id="m_old_image">
 
       <div class="modal-body">
-        <div class="grid-2" style="gap:14px">
+        <div class="form-row">
           <div class="form-group">
             <label class="form-label">Title (Latin) *</label>
             <input type="text" name="title_latin" id="m_tl" class="form-control" required>
           </div>
           <div class="form-group">
-            <label class="form-label">Title (Кирилл) <small class="text-mute">— bo'sh qoldirsangiz avto-konvert</small></label>
+            <label class="form-label">Title (Кирилл)</label>
             <input type="text" name="title_cyrillic" id="m_tc" class="form-control">
           </div>
         </div>
-
-        <div class="grid-2" style="gap:14px">
+        <div class="form-row">
           <div class="form-group">
             <label class="form-label">Slug</label>
-            <input type="text" name="slug" id="m_slug" class="form-control" pattern="[a-z0-9-]+" placeholder="avto-generatsiya">
+            <input type="text" name="slug" id="m_slug" class="form-control" pattern="[a-z0-9-]+" placeholder="avto">
           </div>
           <div class="form-group">
             <label class="form-label"><?= t('category') ?></label>
-            <input type="text" name="category" id="m_cat" class="form-control" list="catList" placeholder="Tavsiya, Maslahat...">
-            <datalist id="catList">
-              <option value="Tavsiya"><option value="Maslahat"><option value="Yangiliklar"><option value="Tajriba">
-            </datalist>
+            <input type="text" name="category" id="m_cat" class="form-control">
           </div>
         </div>
-
         <div class="form-group">
           <label class="form-label">Excerpt (Latin)</label>
           <textarea name="excerpt_latin" id="m_el" class="form-control" rows="2" maxlength="500"></textarea>
@@ -207,21 +201,18 @@ render_head(t('blog'));
           <label class="form-label">Excerpt (Кирилл)</label>
           <textarea name="excerpt_cyrillic" id="m_ec" class="form-control" rows="2" maxlength="500"></textarea>
         </div>
-
         <div class="form-group">
-          <label class="form-label">Content (Latin) <small class="text-mute">— HTML qo'llab-quvvatlanadi</small></label>
+          <label class="form-label">Content (Latin)</label>
           <textarea name="content_latin" id="m_cl" class="form-control" rows="6"></textarea>
         </div>
         <div class="form-group">
-          <label class="form-label">Content (Кирилл) <small class="text-mute">— bo'sh = avto</small></label>
+          <label class="form-label">Content (Кирилл)</label>
           <textarea name="content_cyrillic" id="m_cc" class="form-control" rows="6"></textarea>
         </div>
-
-        <div class="grid-2" style="gap:14px">
+        <div class="form-row">
           <div class="form-group">
             <label class="form-label">Cover image</label>
             <input type="file" name="image" class="form-control" accept="image/*">
-            <div id="m_currentImg" class="form-help"></div>
           </div>
           <div class="form-group">
             <label class="form-label">Status</label>
@@ -232,10 +223,9 @@ render_head(t('blog'));
           </div>
         </div>
       </div>
-
       <div class="modal-footer">
-        <button class="btn btn-light" data-modal-close><?= t('cancel') ?></button>
-        <button class="btn btn-primary" type="submit"><?= t('save') ?></button>
+        <button type="button" class="btn btn-light" data-modal-close><?= t('cancel') ?></button>
+        <button type="submit" class="btn btn-primary"><?= icon('check', 14) ?> <?= t('save') ?></button>
       </div>
     </form>
   </div>
@@ -255,11 +245,7 @@ function openEditModal(p){
   document.getElementById('m_cc').value     = p.content_cyrillic || '';
   document.getElementById('m_st').value     = p.status || 'published';
   document.getElementById('m_old_image').value = p.image || '';
-
-  const cur = document.getElementById('m_currentImg');
-  if (p.image) cur.innerHTML = 'Joriy: <a href="'+p.image+'" target="_blank">ko\'rish</a>';
-  else cur.textContent = '';
-
+  document.getElementById('modalTitle').textContent = p.id ? '<?= t('edit') ?>' : '<?= t('add') ?>';
   openModal('editModal');
 }
 </script>

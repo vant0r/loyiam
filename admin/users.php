@@ -2,32 +2,41 @@
 require_once __DIR__ . '/../includes/auth.php';
 require_admin();
 
-$msg = ''; $err = '';
+// PRG flash messages
+$msg = flash('msg');
+$err = flash('err');
 
-// Action lar
+// =====================================
+// POST handler — har doim redirect bilan
+// =====================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!csrf_check()) {
-        $err = t('csrf_invalid');
-    } else {
-        $action = $_POST['action'] ?? '';
-        $id     = (int)($_POST['id'] ?? 0);
+    $redir = $_SERVER['REQUEST_URI'];
 
+    if (!csrf_check()) {
+        flash('err', 'Xavfsizlik tokeni notog\'ri. Sahifani yangilang.');
+        header("Location: $redir"); exit;
+    }
+
+    $action = $_POST['action'] ?? '';
+    $id     = (int)($_POST['id'] ?? 0);
+
+    try {
         if ($action === 'delete' && $id) {
             db()->execute("DELETE FROM users WHERE id=? AND role!='admin'", [$id]);
             audit('user_deleted', "User #$id", 'warning');
-            $msg = t('deleted_success');
+            flash('msg', t('deleted_success'));
         }
-        if ($action === 'block' && $id) {
+        elseif ($action === 'block' && $id) {
             db()->execute("UPDATE users SET status='blocked' WHERE id=?", [$id]);
             audit('user_blocked', "User #$id", 'warning');
-            $msg = lang()==='uz_cyrillic' ? 'Блокланди' : 'Bloklandi';
+            flash('msg', lang()==='uz_cyrillic' ? 'Блокланди' : 'Bloklandi');
         }
-        if ($action === 'unblock' && $id) {
+        elseif ($action === 'unblock' && $id) {
             db()->execute("UPDATE users SET status='active' WHERE id=?", [$id]);
             audit('user_unblocked', "User #$id");
-            $msg = lang()==='uz_cyrillic' ? 'Фаоллаштирилди' : 'Faollashtirildi';
+            flash('msg', lang()==='uz_cyrillic' ? 'Фаоллаштирилди' : 'Faollashtirildi');
         }
-        if ($action === 'add') {
+        elseif ($action === 'add') {
             $first = Security::clean($_POST['first_name'] ?? '', 50);
             $last  = Security::clean($_POST['last_name'] ?? '', 50);
             $email = Security::clean($_POST['email'] ?? '', 100);
@@ -35,48 +44,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $role  = in_array($_POST['role'] ?? '', ['user','admin','developer']) ? $_POST['role'] : 'user';
             $pass  = $_POST['password'] ?? 'changeme';
 
-            if (!$first || !$last || (!$email && !$phone)) {
-                $err = t('fill_required');
-            } elseif ($email && !Security::valid_email($email)) {
-                $err = t('invalid_email');
-            } elseif (strlen($pass) < 6) {
-                $err = t('password_min');
-            } else {
-                $exists = db()->fetch("SELECT id FROM users WHERE email = ? OR phone = ?", [$email ?: null, $phone ?: null]);
-                if ($exists) {
-                    $err = t('email_exists');
-                } else {
-                    db()->execute(
-                        "INSERT INTO users (first_name,last_name,email,phone,password,role,status,referral_code)
-                         VALUES (?,?,?,?,?,?, 'active', ?)",
-                        [$first, $last, $email ?: null, $phone ?: null,
-                         password_hash($pass, PASSWORD_DEFAULT), $role,
-                         strtoupper(substr(bin2hex(random_bytes(6)),0,8))]);
-                    audit('user_added', "Email: $email, role: $role");
-                    $msg = lang()==='uz_cyrillic' ? 'Фойдаланувчи қўшилди' : 'Foydalanuvchi qo\'shildi';
-                }
-            }
+            if (!$first || !$last) throw new Exception(t('fill_required') . ': ism + familiya');
+            if (!$email && !$phone) throw new Exception('Email yoki telefon kiriting');
+            if ($email && !Security::valid_email($email)) throw new Exception(t('invalid_email'));
+            if (strlen($pass) < 6) throw new Exception(t('password_min'));
+
+            $exists = db()->fetch("SELECT id FROM users WHERE email = ? OR phone = ?", [$email ?: '__', $phone ?: '__']);
+            if ($exists) throw new Exception(t('email_exists'));
+
+            $ok = db()->execute(
+                "INSERT INTO users (first_name,last_name,email,phone,password,role,status,referral_code)
+                 VALUES (?,?,?,?,?,?, 'active', ?)",
+                [$first, $last, $email ?: null, $phone ?: null,
+                 password_hash($pass, PASSWORD_DEFAULT), $role,
+                 strtoupper(substr(bin2hex(random_bytes(6)),0,8))]);
+
+            if (!$ok) throw new Exception('DB xatosi');
+            audit('user_added', "Email: $email, role: $role");
+            flash('msg', lang()==='uz_cyrillic' ? 'Фойдаланувчи қўшилди' : 'Foydalanuvchi qo\'shildi');
         }
-        if ($action === 'edit' && $id) {
+        elseif ($action === 'edit' && $id) {
             $first = Security::clean($_POST['first_name'] ?? '', 50);
             $last  = Security::clean($_POST['last_name'] ?? '', 50);
             $email = Security::clean($_POST['email'] ?? '', 100);
             $phone = Security::clean($_POST['phone'] ?? '', 20);
             $role  = in_array($_POST['role'] ?? '', ['user','admin','developer']) ? $_POST['role'] : 'user';
 
-            if (!$first || !$last) {
-                $err = t('fill_required');
-            } else {
-                db()->execute(
-                    "UPDATE users SET first_name=?, last_name=?, email=?, phone=?, role=? WHERE id=?",
-                    [$first, $last, $email ?: null, $phone ?: null, $role, $id]);
-                audit('user_updated', "User #$id");
-                $msg = t('updated_success');
-            }
+            if (!$first || !$last) throw new Exception(t('fill_required'));
+
+            db()->execute(
+                "UPDATE users SET first_name=?, last_name=?, email=?, phone=?, role=? WHERE id=?",
+                [$first, $last, $email ?: null, $phone ?: null, $role, $id]);
+            audit('user_updated', "User #$id");
+            flash('msg', t('updated_success'));
         }
+        else {
+            throw new Exception('Notog\'ri amal: '.$action);
+        }
+    } catch (Throwable $e) {
+        flash('err', 'Xatolik: ' . $e->getMessage());
     }
+
+    header("Location: $redir"); exit;
 }
 
+// =====================================
+// Display
+// =====================================
 $search = trim($_GET['q'] ?? '');
 $role_f = $_GET['role'] ?? '';
 
@@ -96,7 +110,7 @@ render_head(t('users'));
 <main class="main">
   <div class="page-header">
     <div class="page-title"><?= icon('users', 28) ?> <?= t('users') ?></div>
-    <button class="btn btn-primary" onclick='openUserModal({})'>
+    <button type="button" class="btn btn-primary" onclick='openUserModal({})'>
       <?= icon('plus', 16) ?> <?= t('add') ?>
     </button>
   </div>
@@ -104,8 +118,7 @@ render_head(t('users'));
   <?php if ($msg): ?><div class="alert alert-success"><?= icon('check-circle', 18) ?> <?= e($msg) ?></div><?php endif; ?>
   <?php if ($err): ?><div class="alert alert-danger"><?= icon('x-circle', 18) ?> <?= e($err) ?></div><?php endif; ?>
 
-  <!-- Filter -->
-  <form method="get" class="card mb-3" style="display:flex;gap:12px;flex-wrap:wrap;align-items:end">
+  <form method="get" class="card mb-3" style="display:flex;gap:12px;flex-wrap:wrap;align-items:end" data-no-loading>
     <div class="form-group flex-1" style="min-width:200px;margin-bottom:0">
       <input type="text" name="q" class="form-control" value="<?= e($search) ?>" placeholder="<?= t('search') ?>...">
     </div>
@@ -123,20 +136,14 @@ render_head(t('users'));
     <?php endif; ?>
   </form>
 
-  <!-- Users list -->
   <div class="card" style="padding:0">
-    <div class="table-wrap table-flat table-responsive">
+    <div class="table-wrap table-flat">
       <table>
         <thead>
           <tr>
-            <th>#</th>
-            <th><?= t('name') ?></th>
-            <th><?= t('email') ?></th>
-            <th><?= t('phone') ?></th>
-            <th><?= t('role') ?></th>
-            <th><?= t('status') ?></th>
-            <th><?= t('date') ?></th>
-            <th><?= t('actions') ?></th>
+            <th>#</th><th><?= t('name') ?></th><th><?= t('email') ?></th>
+            <th><?= t('phone') ?></th><th><?= t('role') ?></th>
+            <th><?= t('status') ?></th><th><?= t('date') ?></th><th><?= t('actions') ?></th>
           </tr>
         </thead>
         <tbody>
@@ -150,7 +157,7 @@ render_head(t('users'));
                 <?php else: ?>
                   <div class="review-avatar" style="width:34px;height:34px;font-size:13px"><?= mb_substr($u['first_name'],0,1) ?></div>
                 <?php endif; ?>
-                <div><strong><?= e($u['first_name'].' '.$u['last_name']) ?></strong></div>
+                <strong><?= e($u['first_name'].' '.$u['last_name']) ?></strong>
               </div>
             </td>
             <td><?= e($u['email']) ?></td>
@@ -163,11 +170,10 @@ render_head(t('users'));
             <td style="white-space:nowrap"><?= date('d.m.Y', strtotime($u['created_at'])) ?></td>
             <td>
               <div class="flex" style="gap:4px;flex-wrap:nowrap">
-                <button class="btn btn-light btn-sm" title="Tahrirlash"
-                        onclick='openUserModal(<?= json_encode($u, JSON_HEX_APOS|JSON_HEX_QUOT) ?>)'>
+                <button type="button" class="btn btn-light btn-sm" title="Tahrirlash"
+                        onclick='openUserModal(<?= json_encode($u, JSON_HEX_APOS|JSON_HEX_QUOT|JSON_UNESCAPED_UNICODE) ?>)'>
                   <?= icon('edit', 12) ?>
                 </button>
-
                 <?php if ($u['status']==='active' && $u['role'] !== 'admin'): ?>
                 <form method="post" style="display:inline" onsubmit="return confirm('Bloklaymi?')">
                   <?= csrf_field() ?>
@@ -187,7 +193,6 @@ render_head(t('users'));
                   </button>
                 </form>
                 <?php endif; ?>
-
                 <?php if ($u['role'] !== 'admin'): ?>
                 <form method="post" style="display:inline" onsubmit="return confirm('<?= t('confirm_delete') ?>')">
                   <?= csrf_field() ?>
@@ -203,7 +208,7 @@ render_head(t('users'));
           </tr>
           <?php endforeach; ?>
           <?php if (empty($users)): ?>
-            <tr><td colspan="8" class="text-center" style="padding:40px;color:var(--text-soft)"><?= lang()==='uz_cyrillic' ? 'Топилмади' : 'Topilmadi' ?></td></tr>
+            <tr><td colspan="8" class="text-center" style="padding:40px;color:var(--text-soft)">Topilmadi</td></tr>
           <?php endif; ?>
         </tbody>
       </table>
@@ -212,14 +217,13 @@ render_head(t('users'));
 </main>
 </div>
 
-<!-- User modal -->
 <div id="userModal" class="modal-backdrop">
   <div class="modal modal-lg">
     <div class="modal-header">
       <h3 class="modal-title" id="userModalTitle"><?= t('add') ?></h3>
-      <button class="modal-close" data-modal-close>&times;</button>
+      <button type="button" class="modal-close" data-modal-close>&times;</button>
     </div>
-    <form method="post">
+    <form method="post" action="">
       <?= csrf_field() ?>
       <input type="hidden" name="action" id="u_action" value="add">
       <input type="hidden" name="id" id="u_id">
@@ -249,7 +253,6 @@ render_head(t('users'));
           <div class="form-group" id="u_pass_block">
             <label class="form-label"><?= t('password') ?></label>
             <input type="text" name="password" id="u_pass" class="form-control" value="changeme">
-            <div class="form-help">Faqat yangi user uchun</div>
           </div>
           <div class="form-group">
             <label class="form-label"><?= t('role') ?></label>
@@ -264,7 +267,7 @@ render_head(t('users'));
 
       <div class="modal-footer">
         <button type="button" class="btn btn-light" data-modal-close><?= t('cancel') ?></button>
-        <button type="submit" class="btn btn-primary"><?= t('save') ?></button>
+        <button type="submit" class="btn btn-primary"><?= icon('check', 14) ?> <?= t('save') ?></button>
       </div>
     </form>
   </div>

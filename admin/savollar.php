@@ -3,102 +3,110 @@ require_once __DIR__ . '/../includes/auth.php';
 require_admin();
 
 $lang_field = lang() === 'uz_cyrillic' ? 'cyrillic' : 'latin';
-$msg = ''; $err = '';
 $default_image = setting('default_question_image', '/assets/images/default-question.svg');
 
-// Action handlers
+$msg = flash('msg');
+$err = flash('err');
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!csrf_check()) {
-        $err = t('csrf_invalid');
-    } else {
+    $redir = $_SERVER['REQUEST_URI'];
+    if (!csrf_check()) { flash('err', 'CSRF xatosi'); header("Location: $redir"); exit; }
+
     $action = $_POST['action'] ?? '';
     $id = (int)($_POST['id'] ?? 0);
 
-    if ($action === 'delete' && $id) {
-        db()->execute("DELETE FROM answers WHERE question_id=?", [$id]);
-        db()->execute("DELETE FROM questions WHERE id=?", [$id]);
-        $msg = t('deleted_success');
-    }
-
-    if ($action === 'add' || ($action === 'edit' && $id)) {
-        $ticket_id = (int)$_POST['ticket_id'] ?: null;
-        $q_lat = Security::clean($_POST['question_latin'] ?? '', 2000);
-        $q_cyr = Security::clean($_POST['question_cyrillic'] ?? '', 2000);
-        if (!$q_cyr && $q_lat) $q_cyr = uz_latin_to_cyrillic($q_lat);
-
-        $expl_lat = Security::clean($_POST['explanation_latin'] ?? '', 1000);
-        $expl_cyr = Security::clean($_POST['explanation_cyrillic'] ?? '', 1000);
-        if (!$expl_cyr && $expl_lat) $expl_cyr = uz_latin_to_cyrillic($expl_lat);
-
-        $cat   = Security::clean($_POST['category'] ?? '', 100);
-        $diff  = in_array($_POST['difficulty'] ?? '', ['easy','medium','hard']) ? $_POST['difficulty'] : 'medium';
-
-        // Rasm yuklash (ixtiyoriy — yo'q bo'lsa, default ishlatiladi user/test.php'da)
-        $image = $_POST['old_image'] ?? null;
-        if (!empty($_FILES['image']['name'])) {
-            $up = Security::upload_image($_FILES['image'], 'q');
-            if ($up['ok']) $image = $up['url'];
+    try {
+        if ($action === 'delete' && $id) {
+            db()->execute("DELETE FROM answers WHERE question_id=?", [$id]);
+            db()->execute("DELETE FROM questions WHERE id=?", [$id]);
+            flash('msg', t('deleted_success'));
         }
-        if (!empty($_POST['remove_image'])) $image = null;
+        elseif ($action === 'add' || ($action === 'edit' && $id)) {
+            $ticket_id = (int)$_POST['ticket_id'] ?: null;
+            $q_lat = Security::clean($_POST['question_latin'] ?? '', 2000);
+            $q_cyr = Security::clean($_POST['question_cyrillic'] ?? '', 2000);
+            if (!$q_cyr && $q_lat) $q_cyr = uz_latin_to_cyrillic($q_lat);
+            if (!$q_lat) throw new Exception('Savol matni kerak');
 
-        if ($action === 'add') {
-            db()->execute(
-                "INSERT INTO questions (ticket_id, question_latin, question_cyrillic, image,
-                 explanation_latin, explanation_cyrillic, category, difficulty)
-                 VALUES (?,?,?,?,?,?,?,?)",
-                [$ticket_id, $q_lat, $q_cyr, $image, $expl_lat, $expl_cyr, $cat ?: null, $diff]);
-            $qid = (int)db()->lastInsertId();
-        } else {
-            db()->execute(
-                "UPDATE questions SET ticket_id=?, question_latin=?, question_cyrillic=?, image=?,
-                 explanation_latin=?, explanation_cyrillic=?, category=?, difficulty=? WHERE id=?",
-                [$ticket_id, $q_lat, $q_cyr, $image, $expl_lat, $expl_cyr, $cat ?: null, $diff, $id]);
-            $qid = $id;
-            db()->execute("DELETE FROM answers WHERE question_id=?", [$qid]);
-        }
+            // Kamida 2 ta javob bo'lishi kerak
+            $answer_count = 0;
+            for ($i = 1; $i <= 4; $i++) {
+                if (trim($_POST["answer_lat_$i"] ?? '')) $answer_count++;
+            }
+            if ($answer_count < 2) throw new Exception('Kamida 2 ta javob varianti kerak');
 
-        // Variantlar
-        $correct = (int)($_POST['correct'] ?? 1);
-        for ($i = 1; $i <= 4; $i++) {
-            $a_lat = Security::clean($_POST["answer_lat_$i"] ?? '', 500);
-            $a_cyr = Security::clean($_POST["answer_cyr_$i"] ?? '', 500);
-            if (!$a_lat) continue;
-            if (!$a_cyr) $a_cyr = uz_latin_to_cyrillic($a_lat);
-            $is_correct = ($i === $correct) ? 1 : 0;
-            db()->execute(
-                "INSERT INTO answers (question_id, answer_latin, answer_cyrillic, is_correct, sort_order)
-                 VALUES (?,?,?,?,?)", [$qid, $a_lat, $a_cyr, $is_correct, $i]);
-        }
-        $msg = $action === 'add' ? t('saved_success') : t('updated_success');
-    }
-    } // end csrf else
-}
+            $expl_lat = Security::clean($_POST['explanation_latin'] ?? '', 1000);
+            $expl_cyr = Security::clean($_POST['explanation_cyrillic'] ?? '', 1000);
+            if (!$expl_cyr && $expl_lat) $expl_cyr = uz_latin_to_cyrillic($expl_lat);
 
-// CSV import
-if (!empty($_FILES['csv']['tmp_name']) && ($_POST['action'] ?? '') === 'csv_import' && csrf_check()) {
-    $h = fopen($_FILES['csv']['tmp_name'], 'r');
-    if ($h) {
-        $count = 0;
-        while ($row = fgetcsv($h)) {
-            if (count($row) < 8) continue;
-            db()->execute(
-                "INSERT INTO questions (ticket_id, question_latin, question_cyrillic) VALUES (?,?,?)",
-                [(int)$row[0] ?: null, $row[1], $row[2] ?: $row[1]]);
-            $qid = db()->lastInsertId();
-            for ($i = 0; $i < 4; $i++) {
+            $cat   = Security::clean($_POST['category'] ?? '', 100);
+            $diff  = in_array($_POST['difficulty'] ?? '', ['easy','medium','hard']) ? $_POST['difficulty'] : 'medium';
+
+            $image = $_POST['old_image'] ?? null;
+            if (!empty($_FILES['image']['name'])) {
+                $up = Security::upload_image($_FILES['image'], 'q');
+                if ($up['ok']) { $image = $up['url']; @chmod(BASE_PATH . $up['url'], 0644); }
+                else throw new Exception('Rasm: ' . $up['error']);
+            }
+            if (!empty($_POST['remove_image'])) $image = null;
+
+            if ($action === 'add') {
+                db()->execute(
+                    "INSERT INTO questions (ticket_id, question_latin, question_cyrillic, image,
+                     explanation_latin, explanation_cyrillic, category, difficulty)
+                     VALUES (?,?,?,?,?,?,?,?)",
+                    [$ticket_id, $q_lat, $q_cyr, $image, $expl_lat, $expl_cyr, $cat ?: null, $diff]);
+                $qid = (int)db()->lastInsertId();
+            } else {
+                db()->execute(
+                    "UPDATE questions SET ticket_id=?, question_latin=?, question_cyrillic=?, image=?,
+                     explanation_latin=?, explanation_cyrillic=?, category=?, difficulty=? WHERE id=?",
+                    [$ticket_id, $q_lat, $q_cyr, $image, $expl_lat, $expl_cyr, $cat ?: null, $diff, $id]);
+                $qid = $id;
+                db()->execute("DELETE FROM answers WHERE question_id=?", [$qid]);
+            }
+
+            $correct = (int)($_POST['correct'] ?? 1);
+            for ($i = 1; $i <= 4; $i++) {
+                $a_lat = Security::clean($_POST["answer_lat_$i"] ?? '', 500);
+                $a_cyr = Security::clean($_POST["answer_cyr_$i"] ?? '', 500);
+                if (!$a_lat) continue;
+                if (!$a_cyr) $a_cyr = uz_latin_to_cyrillic($a_lat);
+                $is_correct = ($i === $correct) ? 1 : 0;
                 db()->execute(
                     "INSERT INTO answers (question_id, answer_latin, answer_cyrillic, is_correct, sort_order)
-                     VALUES (?,?,?,?,?)",
-                    [$qid, $row[3+$i], $row[3+$i], ((int)$row[7] === $i+1)?1:0, $i+1]);
+                     VALUES (?,?,?,?,?)", [$qid, $a_lat, $a_cyr, $is_correct, $i]);
             }
-            $count++;
+            flash('msg', $action === 'add' ? t('saved_success') : t('updated_success'));
         }
-        fclose($h);
-        $msg = "CSV: $count savol qo'shildi";
+        elseif ($action === 'csv_import' && !empty($_FILES['csv']['tmp_name'])) {
+            $h = fopen($_FILES['csv']['tmp_name'], 'r');
+            if (!$h) throw new Exception('CSV o\'qilmadi');
+            $count = 0;
+            while ($row = fgetcsv($h)) {
+                if (count($row) < 8) continue;
+                db()->execute(
+                    "INSERT INTO questions (ticket_id, question_latin, question_cyrillic) VALUES (?,?,?)",
+                    [(int)$row[0] ?: null, $row[1], $row[2] ?: $row[1]]);
+                $qid = db()->lastInsertId();
+                for ($i = 0; $i < 4; $i++) {
+                    db()->execute(
+                        "INSERT INTO answers (question_id, answer_latin, answer_cyrillic, is_correct, sort_order)
+                         VALUES (?,?,?,?,?)",
+                        [$qid, $row[3+$i], $row[3+$i], ((int)$row[7] === $i+1)?1:0, $i+1]);
+                }
+                $count++;
+            }
+            fclose($h);
+            flash('msg', "CSV: $count ta savol qo'shildi");
+        }
+        else { throw new Exception('Notog\'ri amal'); }
+    } catch (Throwable $e) {
+        flash('err', 'Xatolik: ' . $e->getMessage());
     }
+    header("Location: $redir"); exit;
 }
 
-// Filter
 $search   = trim($_GET['q'] ?? '');
 $ticket_f = (int)($_GET['ticket'] ?? 0);
 $diff_f   = $_GET['diff'] ?? '';
@@ -131,16 +139,15 @@ render_head(t('questions'));
       <div class="page-subtitle"><?= count($questions) ?> ta savol</div>
     </div>
     <div class="flex gap-2">
-      <button class="btn btn-light" data-modal-open="csvModal"><?= icon('upload', 16) ?> CSV</button>
-      <button class="btn btn-primary" onclick='openQModal({})'><?= icon('plus', 16) ?> <?= t('add') ?></button>
+      <button type="button" class="btn btn-light" data-modal-open="csvModal"><?= icon('upload', 16) ?> CSV</button>
+      <button type="button" class="btn btn-primary" onclick='openQModal({})'><?= icon('plus', 16) ?> <?= t('add') ?></button>
     </div>
   </div>
 
   <?php if ($msg): ?><div class="alert alert-success"><?= icon('check-circle',18) ?> <?= e($msg) ?></div><?php endif; ?>
   <?php if (!empty($err)): ?><div class="alert alert-danger"><?= icon('x-circle',18) ?> <?= e($err) ?></div><?php endif; ?>
 
-  <!-- Filter -->
-  <form method="get" class="card mb-3" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end">
+  <form method="get" class="card mb-3" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end" data-no-loading>
     <div class="form-group flex-1" style="margin-bottom:0;min-width:180px">
       <input type="text" name="q" class="form-control" value="<?= e($search) ?>" placeholder="<?= t('search') ?>...">
     </div>
@@ -164,14 +171,10 @@ render_head(t('questions'));
     <?php if ($search || $ticket_f || $diff_f): ?><a href="?" class="btn btn-ghost"><?= icon('x',14) ?></a><?php endif; ?>
   </form>
 
-  <!-- Questions Grid -->
   <?php if (empty($questions)): ?>
-    <div class="card empty-state">
-      <?= icon('help', 64) ?>
-      <h3 class="mt-2"><?= lang()==='uz_cyrillic' ? "Саволлар топилмади" : "Savollar topilmadi" ?></h3>
-    </div>
+    <div class="card empty-state"><?= icon('help', 64) ?><h3 class="mt-2">Savollar topilmadi</h3></div>
   <?php else: ?>
-  <div class="q-grid stagger">
+  <div class="q-grid">
     <?php foreach ($questions as $q):
       $img = $q['image'] ?: $default_image;
       $diffCls = ['easy'=>'success','medium'=>'warning','hard'=>'danger'][$q['difficulty']] ?? 'mute';
@@ -179,20 +182,13 @@ render_head(t('questions'));
     <div class="q-card">
       <div class="q-image">
         <img src="<?= e($img) ?>" alt="" loading="lazy">
-        <?php if (!$q['image']): ?>
-          <span class="q-default-badge">📷 Standart</span>
-        <?php endif; ?>
+        <?php if (!$q['image']): ?><span class="q-default-badge">📷 Standart</span><?php endif; ?>
       </div>
       <div class="q-body">
         <div class="flex gap-1 mb-1 flex-wrap">
           <span class="badge badge-info">#<?= $q['id'] ?></span>
-          <?php if ($q['tname']): ?>
-            <span class="badge badge-mute">Bilet #<?= $q['ticket_number'] ?></span>
-          <?php endif; ?>
+          <?php if ($q['tname']): ?><span class="badge badge-mute">Bilet #<?= $q['ticket_number'] ?></span><?php endif; ?>
           <span class="badge badge-<?= $diffCls ?>"><?= t($q['difficulty']) ?></span>
-          <?php if ($q['category']): ?>
-            <span class="badge badge-mute"><?= e($q['category']) ?></span>
-          <?php endif; ?>
         </div>
         <p class="q-text"><?= e(mb_substr($q['question_'.$lang_field], 0, 130)) ?><?= mb_strlen($q['question_'.$lang_field]) > 130 ? '...' : '' ?></p>
         <ul class="q-answers">
@@ -208,7 +204,8 @@ render_head(t('questions'));
           <?php endforeach; ?>
         </ul>
         <div class="flex gap-1 mt-2">
-          <button class="btn btn-light btn-sm" onclick='openQModal(<?= json_encode($q, JSON_HEX_APOS|JSON_HEX_QUOT|JSON_UNESCAPED_UNICODE) ?>)'>
+          <button type="button" class="btn btn-light btn-sm"
+            onclick='openQModal(<?= json_encode($q, JSON_HEX_APOS|JSON_HEX_QUOT|JSON_UNESCAPED_UNICODE) ?>)'>
             <?= icon('edit', 12) ?>
           </button>
           <form method="post" style="display:inline" onsubmit="return confirm('<?= t('confirm_delete') ?>')">
@@ -228,14 +225,11 @@ render_head(t('questions'));
 
 <style>
 .q-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:18px}
-.q-card{background:#fff;border:1px solid var(--border);border-radius:var(--r-xl);overflow:hidden;
-  transition:all .35s var(--ease-out)}
-.q-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-md);border-color:var(--primary-200)}
+.q-card{background:#fff;border:1px solid var(--border);border-radius:var(--r-xl);overflow:hidden;transition:box-shadow .25s}
+.q-card:hover{box-shadow:var(--shadow-md)}
 .q-image{aspect-ratio:16/9;position:relative;overflow:hidden;background:var(--bg-soft)}
-.q-image img{width:100%;height:100%;object-fit:cover;transition:transform .5s var(--ease-out)}
-.q-card:hover .q-image img{transform:scale(1.04)}
-.q-default-badge{position:absolute;bottom:8px;right:8px;background:rgba(15,23,42,.7);color:#fff;
-  font-size:10px;padding:3px 8px;border-radius:6px;backdrop-filter:blur(4px)}
+.q-image img{width:100%;height:100%;object-fit:cover}
+.q-default-badge{position:absolute;bottom:8px;right:8px;background:rgba(15,23,42,.7);color:#fff;font-size:10px;padding:3px 8px;border-radius:6px}
 .q-body{padding:16px}
 .q-text{font-size:14px;font-weight:600;line-height:1.45;margin-bottom:12px;color:var(--text);
   display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
@@ -249,14 +243,13 @@ render_head(t('questions'));
 @media(max-width:640px){.q-grid{grid-template-columns:1fr}}
 </style>
 
-<!-- Question modal -->
 <div id="qModal" class="modal-backdrop">
   <div class="modal modal-xl">
     <div class="modal-header">
       <h3 class="modal-title" id="qModalTitle"><?= t('add') ?></h3>
-      <button class="modal-close" data-modal-close>&times;</button>
+      <button type="button" class="modal-close" data-modal-close>&times;</button>
     </div>
-    <form method="post" enctype="multipart/form-data">
+    <form method="post" enctype="multipart/form-data" action="">
       <?= csrf_field() ?>
       <input type="hidden" name="action" id="q_action" value="add">
       <input type="hidden" name="id" id="q_id">
@@ -264,22 +257,9 @@ render_head(t('questions'));
       <input type="hidden" name="remove_image" id="q_remove_image" value="0">
 
       <div class="modal-body">
-        <!-- Rasm -->
         <div class="form-group">
           <label class="form-label">Savol rasmi <span class="text-mute">(ixtiyoriy)</span></label>
-          <div class="image-uploader" id="qImageDrop">
-            <input type="file" name="image" accept="image/*" id="q_image" hidden>
-            <img id="q_preview" src="<?= e($default_image) ?>" alt="">
-            <div class="image-uploader-overlay">
-              <?= icon('upload', 32) ?>
-              <strong>Rasm tanlash yoki tortib tashlash</strong>
-              <small>JPG, PNG, WEBP, SVG (max 5MB)</small>
-            </div>
-            <button type="button" class="btn btn-sm" id="q_remove_btn" onclick="removeQImage()"
-                    style="position:absolute;top:8px;right:8px;background:rgba(255,0,0,.9);color:#fff;display:none">
-              <?= icon('x', 14) ?>
-            </button>
-          </div>
+          <input type="file" name="image" accept="image/*" class="form-control" id="q_image">
           <div class="form-help">Bo'sh qoldirilsa standart rasm ko'rsatiladi</div>
         </div>
 
@@ -305,10 +285,7 @@ render_head(t('questions'));
 
         <div class="form-group">
           <label class="form-label">Kategoriya</label>
-          <input type="text" name="category" id="q_cat" class="form-control" maxlength="100" list="catList" placeholder="Belgilar, Tezlik, Asoslar...">
-          <datalist id="catList">
-            <option value="Asoslar"><option value="Belgilar"><option value="Tezlik"><option value="To'xtash"><option value="Yo'l harakati">
-          </datalist>
+          <input type="text" name="category" id="q_cat" class="form-control" maxlength="100" placeholder="Belgilar, Tezlik, Asoslar...">
         </div>
 
         <div class="form-group">
@@ -320,12 +297,12 @@ render_head(t('questions'));
           <textarea name="question_cyrillic" id="q_cyr" class="form-control" rows="3" maxlength="2000"></textarea>
         </div>
 
-        <div class="form-divider">
-          <strong>Javob variantlari</strong> · <span class="text-mute" style="font-size:12px">To'g'ri javobni tanlang</span>
-        </div>
+        <h4 style="margin:18px 0 12px;font-size:14px;color:var(--text-soft);text-transform:uppercase;letter-spacing:.05em">
+          Javob variantlari · <span class="text-mute" style="font-size:12px">To'g'ri javobni tanlang</span>
+        </h4>
 
         <?php for ($i = 1; $i <= 4; $i++): ?>
-        <div class="answer-item-form" id="ans_block_<?= $i ?>">
+        <div class="answer-item-form">
           <label class="answer-radio">
             <input type="radio" name="correct" value="<?= $i ?>" <?= $i==1?'checked':'' ?>>
             <span class="answer-letter-form"><?= chr(64 + $i) ?></span>
@@ -337,10 +314,7 @@ render_head(t('questions'));
         </div>
         <?php endfor; ?>
 
-        <div class="form-divider">
-          <strong>Izoh</strong> · <span class="text-mute" style="font-size:12px">Foydalanuvchiga to'g'ri javob sababini tushuntirish</span>
-        </div>
-        <div class="form-row">
+        <div class="form-row mt-3">
           <div class="form-group">
             <label class="form-label">Izoh (Lotin)</label>
             <textarea name="explanation_latin" id="q_expl_lat" class="form-control" rows="2" maxlength="1000"></textarea>
@@ -354,49 +328,32 @@ render_head(t('questions'));
 
       <div class="modal-footer">
         <button type="button" class="btn btn-light" data-modal-close><?= t('cancel') ?></button>
-        <button type="submit" class="btn btn-primary"><?= t('save') ?></button>
+        <button type="submit" class="btn btn-primary"><?= icon('check', 14) ?> <?= t('save') ?></button>
       </div>
     </form>
   </div>
 </div>
 
 <style>
-.image-uploader{position:relative;border:2px dashed var(--border);border-radius:var(--r-lg);
-  overflow:hidden;cursor:pointer;background:var(--bg-soft);transition:all .25s;aspect-ratio:16/9;max-height:240px}
-.image-uploader:hover{border-color:var(--primary);background:var(--primary-50)}
-.image-uploader.is-dragover{border-color:var(--primary);background:var(--primary-100)}
-.image-uploader img{width:100%;height:100%;object-fit:cover;display:block}
-.image-uploader-overlay{position:absolute;inset:0;background:rgba(15,23,42,.5);color:#fff;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
-  opacity:0;transition:opacity .25s}
-.image-uploader:hover .image-uploader-overlay{opacity:1}
-.image-uploader-overlay strong{font-size:14px}
-.image-uploader-overlay small{font-size:11px;opacity:.85}
-
-.form-divider{display:flex;align-items:center;gap:10px;margin:18px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border);font-size:13px}
-
 .answer-item-form{display:flex;gap:12px;margin-bottom:10px;align-items:flex-start;padding:10px;
   background:var(--bg-soft);border-radius:var(--r-md);border:1.5px solid transparent;transition:all .2s}
 .answer-item-form:has(input[type=radio]:checked){background:var(--success-light);border-color:var(--success)}
 .answer-radio{cursor:pointer;flex-shrink:0;display:flex;align-items:center}
 .answer-radio input{display:none}
 .answer-letter-form{width:36px;height:36px;border:2px solid var(--border);border-radius:50%;
-  display:flex;align-items:center;justify-content:center;font-weight:700;background:#fff;
-  color:var(--text-soft);transition:all .2s}
-.answer-radio input:checked + .answer-letter-form{background:var(--success);color:#fff;border-color:var(--success);
-  box-shadow:0 4px 12px rgba(16,185,129,.3)}
+  display:flex;align-items:center;justify-content:center;font-weight:700;background:#fff;color:var(--text-soft)}
+.answer-radio input:checked + .answer-letter-form{background:var(--success);color:#fff;border-color:var(--success)}
 .answer-inputs{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:8px}
 @media(max-width:640px){.answer-inputs{grid-template-columns:1fr}}
 </style>
 
-<!-- CSV Modal -->
 <div id="csvModal" class="modal-backdrop">
   <div class="modal">
     <div class="modal-header">
       <h3 class="modal-title">CSV Import</h3>
-      <button class="modal-close" data-modal-close>&times;</button>
+      <button type="button" class="modal-close" data-modal-close>&times;</button>
     </div>
-    <form method="post" enctype="multipart/form-data">
+    <form method="post" enctype="multipart/form-data" action="">
       <?= csrf_field() ?>
       <input type="hidden" name="action" value="csv_import">
       <div class="modal-body">
@@ -417,7 +374,8 @@ render_head(t('questions'));
 
 <script>
 function openQModal(q){
-  document.getElementById('q_action').value = q.id ? 'edit' : 'add';
+  const isEdit = !!q.id;
+  document.getElementById('q_action').value = isEdit ? 'edit' : 'add';
   document.getElementById('q_id').value = q.id || '';
   document.getElementById('q_lat').value = q.question_latin || '';
   document.getElementById('q_cyr').value = q.question_cyrillic || '';
@@ -428,11 +386,8 @@ function openQModal(q){
   document.getElementById('q_cat').value = q.category || '';
   document.getElementById('q_old_image').value = q.image || '';
   document.getElementById('q_remove_image').value = '0';
-  document.getElementById('q_preview').src = q.image || '<?= e($default_image) ?>';
-  document.getElementById('q_remove_btn').style.display = q.image ? 'flex' : 'none';
-  document.getElementById('qModalTitle').textContent = q.id ? '<?= t('edit') ?>' : '<?= t('add') ?>';
+  document.getElementById('qModalTitle').textContent = isEdit ? '<?= t('edit') ?>' : '<?= t('add') ?>';
 
-  // Variantlar
   for (let i = 1; i <= 4; i++) {
     document.getElementById('ans_lat_'+i).value = '';
     document.getElementById('ans_cyr_'+i).value = '';
@@ -448,44 +403,7 @@ function openQModal(q){
       }
     });
   }
-
   openModal('qModal');
 }
-
-function removeQImage(){
-  document.getElementById('q_preview').src = '<?= e($default_image) ?>';
-  document.getElementById('q_image').value = '';
-  document.getElementById('q_old_image').value = '';
-  document.getElementById('q_remove_image').value = '1';
-  document.getElementById('q_remove_btn').style.display = 'none';
-}
-
-// Image drag&drop + preview
-(function(){
-  const drop = document.getElementById('qImageDrop');
-  const input = document.getElementById('q_image');
-  const preview = document.getElementById('q_preview');
-  const removeBtn = document.getElementById('q_remove_btn');
-  if (!drop) return;
-  drop.addEventListener('click', e => { if (e.target.tagName !== 'BUTTON') input.click(); });
-  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('is-dragover'); });
-  drop.addEventListener('dragleave', () => drop.classList.remove('is-dragover'));
-  drop.addEventListener('drop', e => {
-    e.preventDefault(); drop.classList.remove('is-dragover');
-    if (e.dataTransfer.files[0]) { input.files = e.dataTransfer.files; previewFile(); }
-  });
-  input.addEventListener('change', previewFile);
-  function previewFile(){
-    if (input.files && input.files[0]) {
-      const r = new FileReader();
-      r.onload = e => {
-        preview.src = e.target.result;
-        removeBtn.style.display = 'flex';
-        document.getElementById('q_remove_image').value = '0';
-      };
-      r.readAsDataURL(input.files[0]);
-    }
-  }
-})();
 </script>
 </body></html>

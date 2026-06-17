@@ -205,6 +205,75 @@ switch ($action) {
             'version' => '2.4.0',
         ]);
 
+    case 'google_signin':
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') api_error('POST required', 405);
+        $credential = $_POST['credential'] ?? '';
+        if (!$credential) api_error('No credential');
+
+        $client_id = setting('google_client_id', '');
+        if (!$client_id) api_error('Google sign-in disabled');
+
+        // Google ID token verify (oddiy yo'l - tokeninfo endpoint)
+        $url = 'https://oauth2.googleapis.com/tokeninfo?id_token=' . urlencode($credential);
+        $ch  = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 10,
+            CURLOPT_SSL_VERIFYPEER => true,
+        ]);
+        $resp = curl_exec($ch);
+        curl_close($ch);
+
+        $data = json_decode($resp, true);
+        if (!is_array($data) || empty($data['email'])) {
+            api_error('Invalid Google token');
+        }
+        if (!empty($data['aud']) && $data['aud'] !== $client_id) {
+            api_error('Token audience mismatch');
+        }
+        if (empty($data['email_verified'])) {
+            api_error('Email not verified');
+        }
+
+        $email = $data['email'];
+        $first = $data['given_name'] ?? explode(' ', $data['name'] ?? 'User')[0];
+        $last  = $data['family_name'] ?? '';
+        $picture = $data['picture'] ?? null;
+
+        // Find or create user
+        $user = db()->fetch("SELECT * FROM users WHERE email = ?", [$email]);
+        if (!$user) {
+            $code = strtoupper(substr(bin2hex(random_bytes(6)), 0, 8));
+            db()->execute(
+                "INSERT INTO users (first_name, last_name, email, password, role, status, referral_code, avatar)
+                 VALUES (?, ?, ?, ?, 'user', 'active', ?, ?)",
+                [$first, $last, $email, password_hash(bin2hex(random_bytes(8)), PASSWORD_DEFAULT), $code, $picture]);
+            $userId = db()->lastInsertId();
+            $user = db()->fetch("SELECT * FROM users WHERE id = ?", [$userId]);
+
+            // Welcome notification
+            require_once __DIR__ . '/../includes/notifications.php';
+            Notify::send((int)$userId, 'welcome', "Xush kelibsiz, $first!",
+                "Google orqali ro'yxatdan o'tdingiz", ['link' => '/user/']);
+        }
+
+        if ($user['status'] !== 'active') api_error('Akkaunt bloklangan');
+
+        // Login
+        Security::session_regenerate();
+        $_SESSION['user_id']   = $user['id'];
+        $_SESSION['user_role'] = $user['role'];
+
+        db()->execute("UPDATE users SET last_login = NOW() WHERE id = ?", [$user['id']]);
+        audit('google_login', "Google: $email", 'info', $user['id']);
+
+        $redirect = match($user['role']) {
+            'admin' => '/admin/',
+            'developer' => '/developer/',
+            default => '/user/',
+        };
+        api_response(['user' => ['id' => (int)$user['id'], 'name' => $first], 'redirect' => $redirect]);
+
     case 'notifications':
         if (!is_logged_in()) api_error('Unauthorized', 401);
         require_once __DIR__ . '/../includes/notifications.php';

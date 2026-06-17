@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         // Default rasmlar (ticket/question)
-        elseif (in_array($action, ['default_ticket_image','default_question_image']) && !empty($_FILES['image']['name'])) {
+        elseif (in_array($action, ['default_ticket_image','default_question_image','auth_login_image','auth_register_image']) && !empty($_FILES['image']['name'])) {
             $up = Security::upload_image($_FILES['image'], $action);
             if ($up['ok']) {
                 db()->execute(
@@ -51,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                      ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)",
                     [$action, $up['url']]);
                 @chmod(BASE_PATH . $up['url'], 0644);
-                $msg = lang()==='uz_cyrillic' ? 'Стандарт расм янгиланди' : 'Standart rasm yangilandi';
+                $msg = lang()==='uz_cyrillic' ? 'Расм янгиланди' : 'Rasm yangilandi';
             } else {
                 $err = $up['error'];
             }
@@ -97,6 +97,7 @@ render_head(t('settings'));
       $tabs = [
         'general' => lang()==='uz_cyrillic' ? '🏠 Умумий' : '🏠 Umumiy',
         'logo'    => lang()==='uz_cyrillic' ? '🖼️ Лого/Баннер' : '🖼️ Logo/Banner',
+        'auth'    => lang()==='uz_cyrillic' ? '🔐 Кириш/Рўйхат' : '🔐 Kirish/Ro\'yxat',
         'contact' => lang()==='uz_cyrillic' ? '📞 Контакт' : '📞 Kontakt',
         'social'  => '🌐 Social',
         'payment' => lang()==='uz_cyrillic' ? '💳 Тўлов' : '💳 To\'lov',
@@ -276,6 +277,97 @@ render_head(t('settings'));
       });
     });
   </script>
+
+  <?php elseif ($tab === 'auth'): ?>
+  <div class="card">
+    <h3 style="font-size:18px;font-weight:700;margin-bottom:18px">🔐 Kirish/Ro'yxatdan o'tish sahifasi</h3>
+    <p class="text-soft mb-3" style="font-size:13px">
+      Login va Register sahifasidagi rasmlar va Google OAuth sozlamalari
+    </p>
+
+    <div class="grid-2 mb-3">
+      <!-- Login image -->
+      <div>
+        <h4 style="font-size:14px;font-weight:700;margin-bottom:10px">📸 Login sahifa rasmi</h4>
+        <div class="default-img-preview">
+          <?php if (setting('auth_login_image')): ?>
+            <img src="<?= e(setting('auth_login_image')) ?>" alt="">
+          <?php else: ?>
+            <div style="height:160px;background:linear-gradient(135deg,#3B82F6,#1E40AF);color:#fff;display:flex;align-items:center;justify-content:center">Default gradient</div>
+          <?php endif; ?>
+        </div>
+        <form method="post" enctype="multipart/form-data" class="mt-2">
+          <?= csrf_field() ?>
+          <input type="hidden" name="action" value="auth_login_image">
+          <input type="file" name="image" accept="image/*" class="form-control" required>
+          <button class="btn btn-primary btn-sm btn-block mt-2"><?= icon('upload', 14) ?> Yuklash</button>
+        </form>
+        <div class="form-help">Login sahifasi o'ng tomonidagi rasm</div>
+      </div>
+
+      <!-- Register image -->
+      <div>
+        <h4 style="font-size:14px;font-weight:700;margin-bottom:10px">📸 Register sahifa rasmi</h4>
+        <div class="default-img-preview">
+          <?php if (setting('auth_register_image')): ?>
+            <img src="<?= e(setting('auth_register_image')) ?>" alt="">
+          <?php else: ?>
+            <div style="height:160px;background:linear-gradient(135deg,#10B981,#059669);color:#fff;display:flex;align-items:center;justify-content:center">Default gradient</div>
+          <?php endif; ?>
+        </div>
+        <form method="post" enctype="multipart/form-data" class="mt-2">
+          <?= csrf_field() ?>
+          <input type="hidden" name="action" value="auth_register_image">
+          <input type="file" name="image" accept="image/*" class="form-control" required>
+          <button class="btn btn-primary btn-sm btn-block mt-2"><?= icon('upload', 14) ?> Yuklash</button>
+        </form>
+        <div class="form-help">Register rejimida ko'rsatiladigan rasm</div>
+      </div>
+    </div>
+
+    <!-- Google OAuth -->
+    <div class="card" style="background:var(--bg-soft);border:1px solid var(--border)">
+      <h4 style="font-size:14px;font-weight:700;margin-bottom:14px">
+        <span style="color:#4285F4">G</span><span style="color:#EA4335">o</span><span style="color:#FBBC04">o</span><span style="color:#4285F4">g</span><span style="color:#34A853">l</span><span style="color:#EA4335">e</span>
+        Sign-In sozlamalari
+      </h4>
+      <form method="post">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="save_group">
+        <input type="hidden" name="group" value="auth">
+        <div class="form-group">
+          <label class="form-label">Google Client ID</label>
+          <input type="text" name="google_client_id" class="form-control"
+                 value="<?= e(setting('google_client_id')) ?>"
+                 placeholder="123456789-xxxxx.apps.googleusercontent.com">
+          <div class="form-help">
+            Google Cloud Console → APIs & Services → Credentials → "OAuth 2.0 Client ID" yarating
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Google Maps API Key (ixtiyoriy)</label>
+          <input type="text" name="google_maps_api_key" class="form-control"
+                 value="<?= e(setting('google_maps_api_key')) ?>"
+                 placeholder="AIza...">
+          <div class="form-help">Aloqa sahifasidagi xarita uchun</div>
+        </div>
+        <button class="btn btn-primary"><?= icon('check', 14) ?> Saqlash</button>
+      </form>
+
+      <div class="alert alert-info mt-3" style="font-size:12px">
+        <strong>📋 Google OAuth sozlash bo'yicha qo'llanma:</strong>
+        <ol style="margin:6px 0 0 18px;line-height:1.7">
+          <li><a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a> ga o'ting</li>
+          <li>Yangi loyiha yarating</li>
+          <li>APIs & Services → OAuth consent screen → External tanlang</li>
+          <li>Credentials → Create Credentials → OAuth Client ID</li>
+          <li>Application type: Web Application</li>
+          <li>Authorized JavaScript origins: <code><?= e(SITE_URL) ?></code></li>
+          <li>Client ID ni yuqoriga nusxalang</li>
+        </ol>
+      </div>
+    </div>
+  </div>
 
   <?php elseif ($tab === 'contact'): ?>
   <div class="card">

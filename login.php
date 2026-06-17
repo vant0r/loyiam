@@ -24,18 +24,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (($_POST['form'] ?? '') === 'register') $registerErr = t('csrf_invalid');
         else $loginErr = t('csrf_invalid');
     } else {
-        // LOGIN
         if (($_POST['form'] ?? '') === 'login') {
-            $r = Auth::login(
-                $_POST['login'] ?? '',
-                $_POST['password'] ?? '',
-                !empty($_POST['remember'])
-            );
+            $r = Auth::login($_POST['login'] ?? '', $_POST['password'] ?? '', !empty($_POST['remember']));
             if ($r['ok']) { header('Location: ' . $r['redirect']); exit; }
             $loginErr = $r['msg'];
             $mode = 'login';
         }
-        // REGISTER
         elseif (($_POST['form'] ?? '') === 'register') {
             $r = Auth::register($_POST);
             if ($r['ok']) { header('Location: ' . $r['redirect']); exit; }
@@ -46,30 +40,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+// Admin tomonidan yuklangan image va Google client ID
+$auth_login_image    = setting('auth_login_image', '');
+$auth_register_image = setting('auth_register_image', '');
+$google_client_id    = setting('google_client_id', '');
+
 render_head($mode === 'register' ? t('register') : t('login'));
 ?>
-<header class="auth-topbar">
-  <div class="container nav" style="padding:14px 0">
-    <a href="/" class="logo"><span class="logo-icon">VP</span><span><?= e(setting('site_name', SITE_NAME)) ?></span></a>
-    <div class="lang-switch">
-      <a href="?setlang=uz_latin" class="<?= lang()==='uz_latin'?'active':'' ?>">Uz</a>
-      <a href="?setlang=uz_cyrillic" class="<?= lang()==='uz_cyrillic'?'active':'' ?>">Кр</a>
-    </div>
-  </div>
-</header>
 
-<main class="auth-page-v2">
-  <div class="auth-card <?= $mode === 'register' ? 'is-register' : '' ?>" id="authCard">
-    <!-- Forms side -->
+<a href="/" class="back-home" title="Bosh sahifa">
+  <?= icon('arrow-left', 18) ?>
+  <span><?= lang()==='uz_cyrillic' ? "Бош саҳифа" : "Bosh sahifa" ?></span>
+</a>
+
+<div class="auth-fullscreen">
+  <div class="auth-card-fs <?= $mode === 'register' ? 'is-register' : '' ?>" id="authCard">
+
+    <!-- ============== FORMS SIDE ============== -->
     <div class="auth-side auth-side-form">
+
       <!-- LOGIN form -->
       <div class="auth-form auth-form-login">
         <div class="auth-form-inner">
-          <div class="auth-icon">
-            <?= icon('login', 26) ?>
+          <div class="auth-brand">
+            <div class="brand-icon">VP</div>
+            <div>
+              <strong><?= e(setting('site_name', SITE_NAME)) ?></strong>
+              <small><?= lang()==='uz_cyrillic' ? "Шахсий кабинет" : "Shaxsiy kabinet" ?></small>
+            </div>
           </div>
+
           <h1><?= t('login') ?></h1>
           <p class="auth-sub"><?= lang()==='uz_cyrillic' ? 'Шахсий кабинетингизга киринг' : "Shaxsiy kabinetingizga kiring" ?></p>
+
+          <?php if ($google_client_id): ?>
+          <!-- Google sign-in -->
+          <div id="g_id_onload"
+               data-client_id="<?= e($google_client_id) ?>"
+               data-callback="handleGoogleSignIn"
+               data-auto_prompt="false"></div>
+          <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="outline"
+               data-text="signin_with" data-size="large" data-logo_alignment="left" data-width="100%"></div>
+
+          <div class="auth-divider"><span><?= lang()==='uz_cyrillic' ? "ёки" : "yoki" ?></span></div>
+          <?php endif; ?>
 
           <?php if ($loginErr): ?>
             <div class="alert alert-danger">
@@ -86,8 +100,7 @@ render_head($mode === 'register' ? t('register') : t('login'));
               <div class="input-group">
                 <span class="input-icon"><?= icon('user', 16) ?></span>
                 <input type="text" name="login" class="form-control" required autocomplete="username"
-                       value="<?= e($_POST['login'] ?? '') ?>"
-                       placeholder="example@mail.com">
+                       value="<?= e($_POST['login'] ?? '') ?>" placeholder="example@mail.com">
               </div>
             </div>
 
@@ -112,10 +125,9 @@ render_head($mode === 'register' ? t('register') : t('login'));
             </button>
           </form>
 
-          <!-- Mobile toggle -->
           <div class="auth-mobile-toggle">
             <?= lang()==='uz_cyrillic' ? "Аккаунтингиз йўқми?" : "Akkauntingiz yo'qmi?" ?>
-            <a href="/login.php?mode=register" onclick="event.preventDefault();toggleAuth()"><?= t('register') ?></a>
+            <a href="#" onclick="event.preventDefault();toggleAuth()"><?= t('register') ?></a>
           </div>
 
           <div class="auth-demo">
@@ -127,17 +139,28 @@ render_head($mode === 'register' ? t('register') : t('login'));
       <!-- REGISTER form -->
       <div class="auth-form auth-form-register">
         <div class="auth-form-inner">
-          <div class="auth-icon" style="background:linear-gradient(135deg,#10B981,#059669)">
-            <?= icon('user', 26) ?>
+          <div class="auth-brand">
+            <div class="brand-icon" style="background:linear-gradient(135deg,#10B981,#059669)">VP</div>
+            <div>
+              <strong><?= e(setting('site_name', SITE_NAME)) ?></strong>
+              <small><?= lang()==='uz_cyrillic' ? "Янги аккаунт" : "Yangi akkaunt" ?></small>
+            </div>
           </div>
+
           <h1><?= t('register') ?></h1>
           <p class="auth-sub"><?= lang()==='uz_cyrillic' ? "Бепул аккаунт яратинг" : "Bepul akkaunt yarating" ?></p>
 
           <?php if ($referral): ?>
             <div class="alert alert-success" style="font-size:12px">
               <?= icon('gift', 14) ?>
-              <span><?= lang()==='uz_cyrillic' ? "Дўст таклифи:" : "Do'st taklifi:" ?> <strong><?= e($referral) ?></strong></span>
+              <span>Do'st taklifi: <strong><?= e($referral) ?></strong></span>
             </div>
+          <?php endif; ?>
+
+          <?php if ($google_client_id): ?>
+          <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="outline"
+               data-text="signup_with" data-size="large" data-logo_alignment="left" data-width="100%"></div>
+          <div class="auth-divider"><span><?= lang()==='uz_cyrillic' ? "ёки" : "yoki" ?></span></div>
           <?php endif; ?>
 
           <?php if ($registerErr): ?>
@@ -169,8 +192,7 @@ render_head($mode === 'register' ? t('register') : t('login'));
               <div class="input-group">
                 <span class="input-icon"><?= icon('phone', 16) ?></span>
                 <input type="tel" name="phone" class="form-control" required maxlength="20"
-                       value="<?= e($registerForm['phone'] ?? '') ?>"
-                       placeholder="+998 90 123 45 67">
+                       value="<?= e($registerForm['phone'] ?? '') ?>" placeholder="+998 90 123 45 67">
               </div>
             </div>
 
@@ -179,7 +201,7 @@ render_head($mode === 'register' ? t('register') : t('login'));
               <div class="input-group">
                 <span class="input-icon"><?= icon('mail', 16) ?></span>
                 <input type="email" name="email" class="form-control" maxlength="100"
-                       value="<?= e($registerForm['email'] ?? '') ?>" placeholder="example@mail.com">
+                       value="<?= e($registerForm['email'] ?? '') ?>">
               </div>
             </div>
 
@@ -188,8 +210,7 @@ render_head($mode === 'register' ? t('register') : t('login'));
                 <label class="form-label"><?= t('password') ?> *</label>
                 <div class="input-group">
                   <span class="input-icon"><?= icon('lock', 16) ?></span>
-                  <input type="password" name="password" id="regPwd" class="form-control" required minlength="8"
-                         data-strength="1" autocomplete="new-password">
+                  <input type="password" name="password" id="regPwd" class="form-control" required minlength="8" data-strength="1" autocomplete="new-password">
                   <button type="button" class="input-action" data-toggle-password="regPwd"><?= icon('eye', 16) ?></button>
                 </div>
               </div>
@@ -197,8 +218,7 @@ render_head($mode === 'register' ? t('register') : t('login'));
                 <label class="form-label"><?= t('password2') ?> *</label>
                 <div class="input-group">
                   <span class="input-icon"><?= icon('lock', 16) ?></span>
-                  <input type="password" name="password2" id="regPwd2" class="form-control" required minlength="8"
-                         autocomplete="new-password">
+                  <input type="password" name="password2" id="regPwd2" class="form-control" required minlength="8" autocomplete="new-password">
                 </div>
               </div>
             </div>
@@ -217,19 +237,19 @@ render_head($mode === 'register' ? t('register') : t('login'));
             </button>
           </form>
 
-          <!-- Mobile toggle -->
           <div class="auth-mobile-toggle">
             <?= lang()==='uz_cyrillic' ? "Аккаунтингиз борми?" : "Akkauntingiz bormi?" ?>
-            <a href="/login.php?mode=login" onclick="event.preventDefault();toggleAuth()"><?= t('login') ?></a>
+            <a href="#" onclick="event.preventDefault();toggleAuth()"><?= t('login') ?></a>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Image side (overlay) -->
+    <!-- ============== IMAGE SIDE ============== -->
     <div class="auth-side auth-side-image">
-      <!-- Login mode content -->
-      <div class="auth-image-content auth-image-login">
+      <!-- LOGIN image content -->
+      <div class="auth-image-content auth-image-login"
+           <?= $auth_login_image ? 'style="background-image:linear-gradient(135deg,rgba(59,130,246,.85),rgba(30,64,175,.85)),url('.e($auth_login_image).');background-size:cover;background-position:center"' : '' ?>>
         <div class="auth-image-inner">
           <div class="auth-decorative">🚗</div>
           <h2><?= lang()==='uz_cyrillic' ? "Хуш келибсиз!" : "Xush kelibsiz!" ?></h2>
@@ -239,17 +259,17 @@ render_head($mode === 'register' ? t('register') : t('login'));
           <button type="button" class="btn-auth-ghost" onclick="toggleAuth()">
             <?= t('register') ?> <?= icon('arrow-right', 16) ?>
           </button>
-
           <div class="auth-features">
-            <div><?= icon('check-circle', 16) ?> <?= lang()==='uz_cyrillic' ? "Бепул аккаунт" : "Bepul akkaunt" ?></div>
-            <div><?= icon('check-circle', 16) ?> <?= lang()==='uz_cyrillic' ? "3000+ савол" : "3000+ savol" ?></div>
-            <div><?= icon('check-circle', 16) ?> <?= lang()==='uz_cyrillic' ? "98% муваффақият" : "98% muvaffaqiyat" ?></div>
+            <div><?= icon('check-circle', 16) ?> Bepul akkaunt</div>
+            <div><?= icon('check-circle', 16) ?> 3000+ savol</div>
+            <div><?= icon('check-circle', 16) ?> 98% muvaffaqiyat</div>
           </div>
         </div>
       </div>
 
-      <!-- Register mode content -->
-      <div class="auth-image-content auth-image-register">
+      <!-- REGISTER image content -->
+      <div class="auth-image-content auth-image-register"
+           <?= $auth_register_image ? 'style="background-image:linear-gradient(135deg,rgba(16,185,129,.85),rgba(5,150,105,.85)),url('.e($auth_register_image).');background-size:cover;background-position:center"' : '' ?>>
         <div class="auth-image-inner">
           <div class="auth-decorative">🎓</div>
           <h2><?= lang()==='uz_cyrillic' ? "Қайтиб келдингизми?" : "Qaytib keldingizmi?" ?></h2>
@@ -259,90 +279,112 @@ render_head($mode === 'register' ? t('register') : t('login'));
           <button type="button" class="btn-auth-ghost" onclick="toggleAuth()">
             <?= icon('arrow-left', 16) ?> <?= t('login') ?>
           </button>
-
           <div class="auth-features">
-            <div><?= icon('check-circle', 16) ?> <?= lang()==='uz_cyrillic' ? "Тарихингиз сақланган" : "Tarixingiz saqlangan" ?></div>
-            <div><?= icon('check-circle', 16) ?> <?= lang()==='uz_cyrillic' ? "Кенгайтирилган статистика" : "Kengaytirilgan statistika" ?></div>
-            <div><?= icon('check-circle', 16) ?> <?= lang()==='uz_cyrillic' ? "Реал вақтда натижа" : "Real vaqtda natija" ?></div>
+            <div><?= icon('check-circle', 16) ?> Tarixingiz saqlangan</div>
+            <div><?= icon('check-circle', 16) ?> Kengaytirilgan statistika</div>
+            <div><?= icon('check-circle', 16) ?> Real vaqtda natija</div>
           </div>
         </div>
       </div>
 
-      <!-- Floating decorative shapes -->
+      <!-- Decorative shapes -->
       <div class="auth-shape auth-shape-1"></div>
       <div class="auth-shape auth-shape-2"></div>
       <div class="auth-shape auth-shape-3"></div>
     </div>
   </div>
-</main>
+
+  <!-- Lang switcher -->
+  <div class="auth-lang">
+    <a href="?setlang=uz_latin" class="<?= lang()==='uz_latin'?'active':'' ?>">Uz</a>
+    <a href="?setlang=uz_cyrillic" class="<?= lang()==='uz_cyrillic'?'active':'' ?>">Кр</a>
+  </div>
+</div>
 
 <style>
 /* ============================================================
-   SPLIT-SCREEN AUTH (v2.8)
+   FULL-SCREEN AUTH (v2.9)
    ============================================================ */
-body{background:linear-gradient(135deg,#F0F9FF 0%,#DBEAFE 100%);min-height:100vh}
+body{margin:0;padding:0;overflow-x:hidden}
 .header,.footer{display:none}
 
-.auth-topbar{position:absolute;top:0;left:0;right:0;z-index:10}
-.auth-topbar .nav{padding:18px 24px;display:flex;justify-content:space-between;align-items:center}
-.auth-topbar .logo{color:var(--text)}
+.back-home{position:fixed;top:24px;left:24px;z-index:100;display:inline-flex;align-items:center;gap:8px;
+  padding:10px 18px;background:rgba(255,255,255,.95);backdrop-filter:blur(10px);
+  border:1px solid rgba(0,0,0,.06);border-radius:100px;color:var(--text);text-decoration:none;
+  font-size:13px;font-weight:600;box-shadow:0 4px 14px rgba(0,0,0,.06);transition:all .25s}
+.back-home:hover{background:#fff;color:var(--primary);box-shadow:0 6px 20px rgba(0,0,0,.1)}
 
-.auth-page-v2{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:80px 20px 40px}
+.auth-lang{position:fixed;top:24px;right:24px;z-index:100;display:inline-flex;
+  background:rgba(255,255,255,.95);backdrop-filter:blur(10px);border-radius:100px;padding:4px;gap:2px;
+  border:1px solid rgba(0,0,0,.06);box-shadow:0 4px 14px rgba(0,0,0,.06)}
+.auth-lang a{padding:6px 14px;border-radius:100px;font-size:12px;font-weight:700;color:var(--text-soft);text-decoration:none;transition:all .2s}
+.auth-lang a.active{background:var(--primary);color:#fff}
 
-.auth-card{position:relative;width:100%;max-width:980px;min-height:600px;background:#fff;
-  border-radius:24px;overflow:hidden;display:flex;
-  box-shadow:0 30px 80px rgba(15,23,42,.15),0 0 0 1px rgba(15,23,42,.04)}
+.auth-fullscreen{min-height:100vh;width:100vw;position:relative;display:flex}
+
+.auth-card-fs{flex:1;display:flex;width:100%;min-height:100vh;background:#fff;overflow:hidden;position:relative}
 
 /* Sides */
-.auth-side{flex:0 0 50%;position:relative;transition:transform .8s cubic-bezier(.65,0,.35,1)}
+.auth-side{flex:0 0 50%;width:50%;position:relative;transition:transform .8s cubic-bezier(.65,0,.35,1)}
 
 /* Form side */
-.auth-side-form{background:#fff;display:flex;align-items:center;justify-content:center;padding:50px 40px}
+.auth-side-form{display:flex;align-items:center;justify-content:center;padding:60px 40px;background:#fff;overflow-y:auto}
 .auth-form{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-  padding:50px 40px;opacity:0;pointer-events:none;transition:opacity .4s ease;overflow-y:auto}
+  padding:60px 40px;opacity:0;pointer-events:none;transition:opacity .4s ease;overflow-y:auto}
 .auth-form.auth-form-login{opacity:1;pointer-events:auto}
-.auth-form-inner{width:100%;max-width:380px;animation:authFadeIn .6s var(--ease-soft) both}
+.auth-form-inner{width:100%;max-width:400px;animation:authFadeIn .6s var(--ease-soft) both}
 @keyframes authFadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 
 /* Image side */
 .auth-side-image{background:linear-gradient(135deg,#3B82F6 0%,#2563EB 50%,#1E40AF 100%);
   color:#fff;position:relative;overflow:hidden}
 .auth-image-content{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-  padding:50px 40px;text-align:center;opacity:0;pointer-events:none;transition:opacity .4s ease;z-index:2}
-.auth-image-content.auth-image-login{opacity:1;pointer-events:auto}
-.auth-image-inner{max-width:340px;animation:authFadeIn .6s var(--ease-soft) both;position:relative;z-index:2}
+  padding:60px 40px;text-align:center;opacity:0;pointer-events:none;transition:opacity .4s ease;z-index:2}
+.auth-image-content.auth-image-login{opacity:1;pointer-events:auto;
+  background:linear-gradient(135deg,#3B82F6 0%,#2563EB 50%,#1E40AF 100%)}
+.auth-image-content.auth-image-register{
+  background:linear-gradient(135deg,#10B981 0%,#059669 100%)}
+.auth-image-inner{max-width:380px;animation:authFadeIn .6s var(--ease-soft) both;position:relative;z-index:2}
 
-.auth-decorative{font-size:80px;margin-bottom:14px;animation:float 4s ease-in-out infinite}
+.auth-decorative{font-size:90px;margin-bottom:18px;animation:float 4s ease-in-out infinite}
 @keyframes float{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-12px) rotate(2deg)}}
 
-.auth-image-inner h2{color:#fff;font-size:30px;font-weight:800;margin-bottom:14px;line-height:1.2}
-.auth-image-inner p{font-size:15px;line-height:1.6;opacity:.95;margin-bottom:28px}
+.auth-image-inner h2{color:#fff;font-size:34px;font-weight:800;margin-bottom:14px;line-height:1.2}
+.auth-image-inner p{font-size:16px;line-height:1.6;opacity:.95;margin-bottom:32px}
 
-.btn-auth-ghost{display:inline-flex;align-items:center;gap:8px;padding:13px 28px;
-  background:rgba(255,255,255,.15);backdrop-filter:blur(10px);
+.btn-auth-ghost{display:inline-flex;align-items:center;gap:8px;padding:14px 32px;
+  background:rgba(255,255,255,.18);backdrop-filter:blur(10px);
   color:#fff;border:1.5px solid rgba(255,255,255,.4);border-radius:12px;
   font-weight:600;font-size:14px;cursor:pointer;transition:all .25s var(--ease-soft);font-family:inherit}
-.btn-auth-ghost:hover{background:rgba(255,255,255,.25);border-color:#fff;color:#fff}
+.btn-auth-ghost:hover{background:rgba(255,255,255,.28);border-color:#fff;color:#fff}
 
-.auth-features{display:flex;flex-direction:column;gap:10px;margin-top:32px;font-size:14px}
+.auth-features{display:flex;flex-direction:column;gap:12px;margin-top:36px;font-size:14px}
 .auth-features > div{display:flex;align-items:center;gap:8px;justify-content:center;opacity:.95}
 
 /* Decorative shapes */
-.auth-shape{position:absolute;border-radius:50%;filter:blur(40px);z-index:1;pointer-events:none}
-.auth-shape-1{width:200px;height:200px;background:rgba(255,255,255,.15);top:-50px;right:-50px;
-  animation:shapeFloat 8s ease-in-out infinite}
-.auth-shape-2{width:150px;height:150px;background:rgba(168,85,247,.25);bottom:50px;left:-30px;
-  animation:shapeFloat 10s ease-in-out infinite reverse}
-.auth-shape-3{width:120px;height:120px;background:rgba(236,72,153,.2);top:50%;right:20%;
-  animation:shapeFloat 12s ease-in-out infinite}
-@keyframes shapeFloat{0%,100%{transform:translate(0,0)}50%{transform:translate(20px,-20px)}}
+.auth-shape{position:absolute;border-radius:50%;filter:blur(50px);z-index:1;pointer-events:none}
+.auth-shape-1{width:280px;height:280px;background:rgba(255,255,255,.18);top:-80px;right:-80px;animation:shapeFloat 8s ease-in-out infinite}
+.auth-shape-2{width:200px;height:200px;background:rgba(168,85,247,.3);bottom:80px;left:-50px;animation:shapeFloat 10s ease-in-out infinite reverse}
+.auth-shape-3{width:160px;height:160px;background:rgba(236,72,153,.25);top:50%;right:20%;animation:shapeFloat 12s ease-in-out infinite}
+@keyframes shapeFloat{0%,100%{transform:translate(0,0)}50%{transform:translate(30px,-30px)}}
 
 /* Form components */
-.auth-icon{width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,var(--primary),var(--secondary));
-  color:#fff;display:flex;align-items:center;justify-content:center;margin-bottom:18px;
-  box-shadow:0 8px 20px rgba(59,130,246,.3)}
-.auth-form-inner h1{font-size:28px;font-weight:800;letter-spacing:-.02em;margin-bottom:6px;color:var(--text)}
+.auth-brand{display:flex;align-items:center;gap:12px;margin-bottom:24px}
+.brand-icon{width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,#3B82F6,#1E40AF);
+  color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;
+  box-shadow:0 8px 18px rgba(59,130,246,.3);flex-shrink:0}
+.auth-brand strong{display:block;font-size:15px;font-weight:800;line-height:1.1;color:var(--text)}
+.auth-brand small{display:block;font-size:11px;color:var(--text-soft);text-transform:uppercase;letter-spacing:.04em;margin-top:2px}
+
+.auth-form-inner h1{font-size:32px;font-weight:800;letter-spacing:-.02em;margin-bottom:6px;color:var(--text)}
 .auth-sub{color:var(--text-soft);font-size:14px;margin-bottom:24px}
+
+.auth-divider{position:relative;text-align:center;margin:18px 0;font-size:12px;color:var(--text-mute);text-transform:uppercase;letter-spacing:.05em}
+.auth-divider::before,.auth-divider::after{content:'';position:absolute;top:50%;width:42%;height:1px;background:var(--border)}
+.auth-divider::before{left:0}
+.auth-divider::after{right:0}
+.auth-divider span{position:relative;background:#fff;padding:0 12px;z-index:1}
+
 .auth-mobile-toggle{display:none;text-align:center;margin-top:18px;padding-top:18px;
   border-top:1px solid var(--border);font-size:13px;color:var(--text-soft)}
 .auth-mobile-toggle a{font-weight:700;margin-left:4px}
@@ -357,67 +399,83 @@ body{background:linear-gradient(135deg,#F0F9FF 0%,#DBEAFE 100%);min-height:100vh
   font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;
   transition:all .25s var(--ease-soft);box-shadow:0 8px 20px rgba(59,130,246,.3)}
 .btn-auth-primary:hover{filter:brightness(1.05);box-shadow:0 12px 28px rgba(59,130,246,.4)}
-.btn-auth-primary:active{filter:brightness(.95)}
 
-/* ============== TOGGLE STATE — Image swaps to LEFT ============== */
-.auth-card.is-register .auth-side-form{transform:translateX(100%)}
-.auth-card.is-register .auth-side-image{transform:translateX(-100%)}
-.auth-card.is-register .auth-form-login{opacity:0;pointer-events:none}
-.auth-card.is-register .auth-form-register{opacity:1;pointer-events:auto}
-.auth-card.is-register .auth-image-login{opacity:0;pointer-events:none}
-.auth-card.is-register .auth-image-register{opacity:1;pointer-events:auto}
+/* Google sign-in container */
+.g_id_signin{margin-bottom:14px}
+
+/* ============== TOGGLE STATE ============== */
+.auth-card-fs.is-register .auth-side-form{transform:translateX(100%)}
+.auth-card-fs.is-register .auth-side-image{transform:translateX(-100%)}
+.auth-card-fs.is-register .auth-form-login{opacity:0;pointer-events:none}
+.auth-card-fs.is-register .auth-form-register{opacity:1;pointer-events:auto}
+.auth-card-fs.is-register .auth-image-login{opacity:0;pointer-events:none}
+.auth-card-fs.is-register .auth-image-register{opacity:1;pointer-events:auto}
 
 /* ============== RESPONSIVE ============== */
 @media (max-width:880px){
-  .auth-page-v2{padding:80px 14px 40px}
-  .auth-card{flex-direction:column;min-height:auto;max-width:480px}
-  .auth-side{flex:none;width:100%}
-  .auth-side-form{padding:32px 24px;min-height:auto}
-  .auth-side-image{display:none} /* Mobile'da image yashirinadi */
-  .auth-form{position:relative;padding:0;display:none}
+  .auth-fullscreen{min-height:auto}
+  .auth-card-fs{flex-direction:column;min-height:100vh}
+  .auth-side{flex:none;width:100%;transform:none !important}
+  .auth-side-form{padding:80px 20px 40px;min-height:100vh}
+  .auth-side-image{display:none}
+  .auth-form{position:relative;padding:0;display:none;inset:auto}
   .auth-form.auth-form-login{display:flex}
-  .auth-card.is-register .auth-form-login{display:none}
-  .auth-card.is-register .auth-form-register{display:flex}
-  .auth-card.is-register .auth-side-form{transform:none}
+  .auth-card-fs.is-register .auth-form-login{display:none}
+  .auth-card-fs.is-register .auth-form-register{display:flex}
   .auth-mobile-toggle{display:block}
   .auth-form-inner{max-width:none;animation:none}
-  .auth-form-inner h1{font-size:24px}
+  .auth-form-inner h1{font-size:26px}
   .form-row{grid-template-columns:1fr;gap:14px}
+  .back-home{top:14px;left:14px;padding:8px 14px;font-size:12px}
+  .auth-lang{top:14px;right:14px}
 }
 
 @media (max-width:480px){
-  .auth-side-form{padding:24px 18px}
-  .auth-icon{width:48px;height:48px;border-radius:12px}
-  .auth-icon svg{width:22px;height:22px}
+  .auth-side-form{padding:70px 16px 24px}
   .auth-form-inner h1{font-size:22px}
   .auth-sub{font-size:13px}
 }
-
-/* Form inputs already styled by global CSS */
 </style>
+
+<?php if ($google_client_id): ?>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+function handleGoogleSignIn(response) {
+  // Send credential to backend
+  fetch('/api/?action=google_signin', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({credential: response.credential})
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.ok) {
+      window.location.href = data.redirect || '/user/';
+    } else {
+      alert('Google login error: ' + (data.error || 'Unknown'));
+    }
+  })
+  .catch(e => alert('Network error'));
+}
+</script>
+<?php endif; ?>
 
 <script>
 function toggleAuth() {
   const card = document.getElementById('authCard');
   card.classList.toggle('is-register');
-  // URL update without reload
   const newMode = card.classList.contains('is-register') ? 'register' : 'login';
   history.replaceState(null, '', '/login.php?mode=' + newMode);
-  // Scroll to top on mobile
   if (window.innerWidth < 880) window.scrollTo({top: 0, behavior: 'smooth'});
 }
 
-// Password match validation
+// Password match
 (function(){
   const p1 = document.getElementById('regPwd');
   const p2 = document.getElementById('regPwd2');
   if (!p1 || !p2) return;
   const check = () => {
-    if (p2.value && p1.value !== p2.value) {
-      p2.style.borderColor = 'var(--danger)';
-    } else {
-      p2.style.borderColor = '';
-    }
+    p2.style.borderColor = (p2.value && p1.value !== p2.value) ? 'var(--danger)' : '';
   };
   p1.addEventListener('input', check);
   p2.addEventListener('input', check);
