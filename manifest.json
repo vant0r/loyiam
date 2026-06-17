@@ -1,0 +1,48 @@
+{
+  "name": "VatanParvar Yaypan",
+  "short_name": "VP Yaypan",
+  "description": "Avtomaktab imtihoniga onlayn tayyorlanish platformasi",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#3B82F6",
+  "lang": "uz",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/assets/images/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/images/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/images/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Testlar",
+      "short_name": "Test",
+      "url": "/user/testlar.php",
+      "icons": [{"src": "/assets/images/logo.svg", "sizes": "any"}]
+    },
+    {
+      "name": "Tariflar",
+      "short_name": "Tarif",
+      "url": "/tariflar.php",
+      "icons": [{"src": "/assets/images/logo.svg", "sizes": "any"}]
+    }
+  ],
+  "categories": ["education", "productivity"],
+  "screenshots": []
+}

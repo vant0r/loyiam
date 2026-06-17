@@ -1,0 +1,27 @@
+# Cache fayllar
+/cache/data/*
+/cache/ratelimit/*
+/cache/comments_*.json
+/cache/banned_ips.json
+/cache/tg_last.json
+!/cache/data/.gitkeep
+!/cache/ratelimit/.gitkeep
+
+# Foydalanuvchi yuklagan fayllar
+/assets/uploads/*
+!/assets/uploads/.gitkeep
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Local config (parol va boshqa maxfiy ma'lumotlar)
+/includes/config.local.php
+.env
+.env.local
