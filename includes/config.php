@@ -15,6 +15,17 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// O'rnatilmaganligini tekshirish — agar .installed yo'q bo'lsa, install.php ga yo'naltirish
+if (!is_file(dirname(__DIR__) . '/.installed')
+    && !defined('INSTALLER_RUNNING')
+    && basename($_SERVER['SCRIPT_NAME'] ?? '') !== 'install.php') {
+    // CLI uchun (cron) yo'naltirmaymiz
+    if (php_sapi_name() !== 'cli' && !headers_sent()) {
+        header('Location: /install.php');
+        exit;
+    }
+}
+
 // ----------------------------------
 // Loyiha doimiylari
 // ----------------------------------

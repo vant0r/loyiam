@@ -761,6 +761,257 @@ table tbody tr.is-highlighted{background:var(--primary-100)}
   *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;animation-iteration-count:1!important}
 }
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+:focus-visible{outline:2px solid var(--primary);outline-offset:3px;border-radius:4px}
+
+/* ============== ENHANCED ANIMATIONS (v2.1) ============== */
+
+/* Smooth page transitions */
+@keyframes pageEnter{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+main, .container > section:first-child{animation:pageEnter .5s var(--ease-out) both}
+
+/* Ripple effect */
+@keyframes ripple{from{transform:scale(0);opacity:.6}to{transform:scale(2.5);opacity:0}}
+.btn{position:relative;overflow:hidden;isolation:isolate}
+.btn .ripple{position:absolute;border-radius:50%;background:currentColor;opacity:.3;
+  animation:ripple .6s ease-out;pointer-events:none;z-index:0}
+
+/* Floating glow */
+@keyframes glowPulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(59,130,246,.4)}
+  50%{box-shadow:0 0 24px 8px rgba(59,130,246,.15)}
+}
+.btn-primary.btn-glow{animation:glowPulse 2.5s ease-in-out infinite}
+
+/* Smooth slide reveals */
+@keyframes slideRevealLeft{from{opacity:0;transform:translateX(-30px);clip-path:inset(0 100% 0 0)}to{opacity:1;transform:translateX(0);clip-path:inset(0 0 0 0)}}
+@keyframes slideRevealRight{from{opacity:0;transform:translateX(30px);clip-path:inset(0 0 0 100%)}to{opacity:1;transform:translateX(0);clip-path:inset(0 0 0 0)}}
+@keyframes slideRevealUp{from{opacity:0;transform:translateY(30px);clip-path:inset(100% 0 0 0)}to{opacity:1;transform:translateY(0);clip-path:inset(0 0 0 0)}}
+.reveal-left{animation:slideRevealLeft .8s var(--ease-out) both}
+.reveal-right{animation:slideRevealRight .8s var(--ease-out) both}
+.reveal-up{animation:slideRevealUp .8s var(--ease-out) both}
+
+/* Hover lift with shadow */
+.lift{transition:transform .3s var(--spring), box-shadow .3s var(--ease-out)}
+.lift:hover{transform:translateY(-6px);box-shadow:var(--shadow-lg)}
+
+/* Scale-up hover for cards */
+.zoom-hover{transition:transform .4s var(--spring)}
+.zoom-hover:hover{transform:scale(1.02)}
+.zoom-hover img{transition:transform .6s var(--ease-out)}
+.zoom-hover:hover img{transform:scale(1.08)}
+
+/* Shake on error */
+@keyframes shake{0%,100%{transform:translateX(0)}10%,30%,50%,70%,90%{transform:translateX(-6px)}20%,40%,60%,80%{transform:translateX(6px)}}
+.shake, .alert-danger{animation:shake .5s var(--ease-out)}
+
+/* Bounce */
+@keyframes bounce{0%,100%{transform:translateY(0)}40%{transform:translateY(-12px)}60%{transform:translateY(-6px)}}
+.bounce{animation:bounce 1s infinite}
+
+/* Gradient text */
+.gradient-text{background:linear-gradient(135deg,var(--primary) 0%,var(--secondary) 50%,#8B5CF6 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  background-size:200% auto;animation:gradientShift 4s linear infinite}
+@keyframes gradientShift{0%{background-position:0% 50%}100%{background-position:200% 50%}}
+
+/* Number counter animation pulse */
+.stat-num,.value{transition:transform .2s var(--spring)}
+.stat-num.counting{transform:scale(1.05)}
+
+/* Reveal on scroll (used with IntersectionObserver) */
+.reveal-on-scroll{opacity:0;transform:translateY(30px);transition:opacity .8s var(--ease-out),transform .8s var(--ease-out)}
+.reveal-on-scroll.visible{opacity:1;transform:translateY(0)}
+
+/* Parallax-style hover for hero */
+.hero-image{will-change:transform}
+
+/* Smooth icon transitions */
+.icon{transition:transform .3s var(--spring)}
+.btn:hover .icon{transform:translateX(2px)}
+.btn-outline:hover .icon, .btn-light:hover .icon{transform:translateX(0) rotate(0)}
+
+/* Pulse dot for live indicators */
+.live-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--success);
+  position:relative;margin-right:6px;vertical-align:middle}
+.live-dot::after{content:'';position:absolute;inset:-2px;border-radius:50%;background:var(--success);
+  animation:livePulse 1.5s ease-out infinite;opacity:0}
+@keyframes livePulse{0%{transform:scale(.8);opacity:.6}100%{transform:scale(2.4);opacity:0}}
+
+/* Smoother modal */
+.modal-backdrop{transition:opacity .25s ease}
+.modal{transform-origin:center}
+
+/* Floating action button (FAB) */
+.fab{position:fixed;right:20px;bottom:20px;width:56px;height:56px;border-radius:50%;
+  background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;
+  display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-primary-lg);
+  border:none;cursor:pointer;z-index:80;transition:all .3s var(--spring)}
+.fab:hover{transform:scale(1.1) rotate(15deg);box-shadow:0 16px 40px rgba(59,130,246,.5)}
+.fab:active{transform:scale(.95)}
+
+/* Toast improvements */
+.toast{transition:transform .3s var(--spring), opacity .3s ease}
+
+/* Form input float label (alternative style) */
+.form-float{position:relative}
+.form-float .form-control{padding-top:22px;padding-bottom:8px}
+.form-float .form-label{position:absolute;left:14px;top:14px;margin:0;pointer-events:none;
+  transition:all .2s var(--ease-out);font-size:14px;color:var(--text-mute)}
+.form-float .form-control:focus + .form-label,
+.form-float .form-control:not(:placeholder-shown) + .form-label{
+  top:6px;font-size:11px;color:var(--primary);font-weight:600
+}
+
+/* Card with sheen effect */
+.card-sheen{position:relative;overflow:hidden;isolation:isolate}
+.card-sheen::before{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent);
+  transition:left .8s var(--ease-out);z-index:1}
+.card-sheen:hover::before{left:100%}
+
+/* Improved skeleton */
+@keyframes skeletonShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* Smooth dropdown */
+.dropdown{position:relative}
+.dropdown-menu{position:absolute;top:100%;right:0;background:#fff;border:1px solid var(--border);
+  border-radius:var(--r-md);box-shadow:var(--shadow-lg);min-width:200px;padding:6px;
+  opacity:0;visibility:hidden;transform:translateY(-8px) scale(.96);
+  transition:all .2s var(--ease-out);z-index:var(--z-dropdown);transform-origin:top right}
+.dropdown.open .dropdown-menu{opacity:1;visibility:visible;transform:translateY(4px) scale(1)}
+.dropdown-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--r-sm);
+  font-size:var(--fs-sm);color:var(--text);cursor:pointer;transition:background .15s}
+.dropdown-item:hover{background:var(--bg-soft);color:var(--primary)}
+
+/* ============== MOBILE-FIRST IMPROVEMENTS (v2.1) ============== */
+
+/* Better touch targets on mobile */
+@media (max-width: 720px) {
+  .btn{min-height:44px}
+  .btn-sm{min-height:36px}
+  .btn-icon{min-width:44px;min-height:44px}
+  .form-control,.form-select{min-height:44px;font-size:16px} /* iOS zoom oldini olish */
+  .nav-menu a{min-height:44px;display:flex;align-items:center}
+  table th,table td{padding:12px 10px}
+  .lang-switch a{min-height:32px;display:flex;align-items:center}
+}
+
+/* Mobile bottom navigation */
+@media (max-width: 720px) {
+  .bottom-nav{position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,.95);
+    backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);
+    border-top:1px solid var(--border);display:flex;justify-content:space-around;padding:8px 4px;
+    z-index:var(--z-sticky);padding-bottom:max(8px, env(safe-area-inset-bottom))}
+  .bottom-nav a{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 12px;
+    min-width:60px;color:var(--text-mute);font-size:11px;font-weight:500;
+    border-radius:var(--r-md);transition:all .2s}
+  .bottom-nav a.active{color:var(--primary);background:var(--primary-light)}
+  .bottom-nav a .icon{margin-bottom:2px}
+  body.has-bottom-nav{padding-bottom:80px}
+  .bottom-nav-show{display:flex !important}
+}
+.bottom-nav{display:none}
+
+/* Mobile-friendly tables (stacked cards) */
+@media (max-width: 640px) {
+  .table-responsive{display:block}
+  .table-responsive thead{display:none}
+  .table-responsive tbody, .table-responsive tr{display:block}
+  .table-responsive td{display:flex;justify-content:space-between;align-items:center;
+    padding:10px 14px;border-bottom:1px solid var(--border);text-align:right}
+  .table-responsive td::before{content:attr(data-label);font-weight:600;color:var(--text-soft);
+    font-size:12px;text-transform:uppercase;text-align:left;margin-right:8px}
+  .table-responsive tr{margin-bottom:14px;background:#fff;border:1px solid var(--border);
+    border-radius:var(--r-md);overflow:hidden}
+  .table-responsive td:last-child{border-bottom:none}
+}
+
+/* Sidebar improvements on mobile */
+@media (max-width: 992px) {
+  .sidebar-overlay{position:fixed;inset:0;background:rgba(15,23,42,.5);backdrop-filter:blur(4px);
+    z-index:calc(var(--z-modal) - 1);opacity:0;visibility:hidden;transition:all .3s}
+  .sidebar.open + .sidebar-overlay{opacity:1;visibility:visible}
+  .sidebar{box-shadow:8px 0 32px rgba(15,23,42,.2)}
+}
+
+/* Mobile-optimized hero */
+@media (max-width: 480px) {
+  .hero{padding:48px 0 32px}
+  .hero h1{font-size:28px;line-height:1.2}
+  .hero p.lead{font-size:15px;margin-bottom:20px}
+  .hero-stats{grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .stat-box{padding:12px 8px}
+  .stat-num{font-size:22px}
+  .stat-label{font-size:10px}
+  .hero-image{max-width:240px;font-size:100px}
+}
+
+/* Mobile sections */
+@media (max-width: 480px) {
+  .section{padding:40px 0}
+  .section-title{font-size:24px;margin-bottom:8px}
+  .section-subtitle{font-size:14px;margin-bottom:32px}
+  .pricing-card{padding:28px 20px}
+  .pricing-price{font-size:36px}
+  .container{padding:0 16px}
+}
+
+/* Improved scrollbar on desktop */
+@media (min-width: 1024px) {
+  ::-webkit-scrollbar{width:10px;height:10px}
+  ::-webkit-scrollbar-track{background:var(--bg-soft)}
+  ::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:5px}
+  ::-webkit-scrollbar-thumb:hover{background:var(--text-mute)}
+}
+
+/* Tablet sweet-spot */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .grid-3{grid-template-columns:repeat(2,1fr)}
+  .grid-4{grid-template-columns:repeat(2,1fr)}
+  .footer-grid{grid-template-columns:1fr 1fr;gap:32px}
+}
+
+/* Landscape orientation on phones */
+@media (max-height: 480px) and (orientation: landscape) {
+  .hero{padding:32px 0}
+  .hero-grid{grid-template-columns:1fr 1fr}
+  .auth-page{align-items:flex-start;padding-top:24px}
+}
+
+/* Print styles */
+@media print {
+  .header,.footer,.sidebar,.modal-backdrop,.btn,.nav-actions,.menu-toggle,.bottom-nav,.fab{display:none!important}
+  .layout{display:block}
+  .main{padding:0;background:#fff}
+  body{background:#fff;color:#000}
+  a{color:inherit;text-decoration:underline}
+  .card{box-shadow:none;border:1px solid #000;break-inside:avoid}
+}
+
+/* Dark mode preparation (theme switch keyin yoqiladi) */
+@media (prefers-color-scheme: dark) {
+  /* Saqlangan, lekin majburiy emas */
+}
+
+/* High DPI screens */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  /* Bular avtomatik retina-ready */
+}
+
+/* Container queries support (modern brauzerlar uchun) */
+@container (max-width: 480px) {
+  .grid-3{grid-template-columns:1fr}
+}
+
+/* Smooth scrolling globally */
+html{scroll-behavior:smooth;scroll-padding-top:80px}
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto}
+}
+
+/* Selection color */
+::selection{background:var(--primary-200);color:var(--primary-900)}
+::-moz-selection{background:var(--primary-200);color:var(--primary-900)}
 </style>
 <?php if (!empty($opts['extra_head'])) echo $opts['extra_head']; ?>
 </head>
@@ -969,6 +1220,180 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') {
 
 // Lazy loading polyfill (modern browsers ham support qiladi native loading="lazy")
 document.querySelectorAll('img:not([loading])').forEach(img => img.loading = 'lazy');
+
+// =============== ENHANCED INTERACTIONS (v2.1) ===============
+
+// Reveal on scroll (IntersectionObserver)
+(function(){
+  if (!('IntersectionObserver' in window)) return;
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        io.unobserve(entry.target);
+      }
+    });
+  }, {threshold: 0.12, rootMargin: '0px 0px -40px 0px'});
+  document.querySelectorAll('.reveal-on-scroll, .fade-up, .reveal-left, .reveal-right, .reveal-up').forEach(el => io.observe(el));
+})();
+
+// Auto-add reveal-on-scroll to sections (lekin already animated bo'lsa skip)
+document.querySelectorAll('.section .card:not(.fade-up):not(.reveal-on-scroll), .grid-3 > *:not(.fade-up):not(.reveal-on-scroll), .grid-4 > *:not(.fade-up):not(.reveal-on-scroll)').forEach(el => {
+  if (!el.closest('.no-auto-reveal')) el.classList.add('reveal-on-scroll');
+});
+
+// Re-observe newly added items
+const lateIO = new IntersectionObserver((entries) => {
+  entries.forEach(entry => entry.isIntersecting && entry.target.classList.add('visible'));
+}, {threshold: 0.1});
+document.querySelectorAll('.reveal-on-scroll').forEach(el => lateIO.observe(el));
+
+// Ripple effect on buttons
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.btn:not(.btn-loading):not(.no-ripple)');
+  if (!btn) return;
+  const rect = btn.getBoundingClientRect();
+  const ripple = document.createElement('span');
+  ripple.className = 'ripple';
+  const size = Math.max(rect.width, rect.height);
+  ripple.style.width = ripple.style.height = size + 'px';
+  ripple.style.left = (e.clientX - rect.left - size/2) + 'px';
+  ripple.style.top  = (e.clientY - rect.top  - size/2) + 'px';
+  btn.appendChild(ripple);
+  setTimeout(() => ripple.remove(), 600);
+});
+
+// Header shadow on scroll
+(function(){
+  const hdr = document.querySelector('.header');
+  if (!hdr) return;
+  let last = 0;
+  const onScroll = () => {
+    const y = window.scrollY;
+    if (y > 8) hdr.style.boxShadow = '0 4px 20px rgba(15,23,42,.06)';
+    else hdr.style.boxShadow = '';
+    // Hide-on-scroll-down (only on mobile)
+    if (window.innerWidth < 720) {
+      if (y > last && y > 200) hdr.style.transform = 'translateY(-100%)';
+      else hdr.style.transform = 'translateY(0)';
+      hdr.style.transition = 'transform .3s ease';
+    }
+    last = y;
+  };
+  window.addEventListener('scroll', onScroll, {passive:true});
+})();
+
+// Mobile sidebar overlay
+(function(){
+  const sidebar = document.querySelector('.sidebar');
+  if (!sidebar) return;
+  let overlay = document.querySelector('.sidebar-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.className = 'sidebar-overlay';
+    sidebar.parentNode.insertBefore(overlay, sidebar.nextSibling);
+  }
+  overlay.addEventListener('click', () => sidebar.classList.remove('open'));
+  // Close on link click (mobile)
+  sidebar.querySelectorAll('a').forEach(a => {
+    a.addEventListener('click', () => {
+      if (window.innerWidth <= 992) sidebar.classList.remove('open');
+    });
+  });
+})();
+
+// Auto-add data-label attributes to table cells (for mobile responsive table)
+document.querySelectorAll('table.table-responsive, .table-responsive table').forEach(tbl => {
+  const headers = [...tbl.querySelectorAll('thead th')].map(th => th.textContent.trim());
+  tbl.querySelectorAll('tbody tr').forEach(tr => {
+    [...tr.children].forEach((td, i) => {
+      if (headers[i] && !td.dataset.label) td.dataset.label = headers[i];
+    });
+  });
+});
+
+// Dropdown toggle
+document.addEventListener('click', e => {
+  const trigger = e.target.closest('[data-dropdown]');
+  if (trigger) {
+    const drop = trigger.closest('.dropdown') || document.getElementById(trigger.dataset.dropdown);
+    if (drop) drop.classList.toggle('open');
+    e.stopPropagation();
+  } else {
+    document.querySelectorAll('.dropdown.open').forEach(d => d.classList.remove('open'));
+  }
+});
+
+// Counter animation pulse
+window.countUp = (el, target, duration=1500) => {
+  const start = performance.now();
+  const animate = (now) => {
+    const elapsed = now - start;
+    const progress = Math.min(elapsed/duration, 1);
+    const eased = 1 - Math.pow(1-progress, 3);
+    el.textContent = Math.floor(target * eased).toLocaleString();
+    el.classList.add('counting');
+    if (progress < 1) requestAnimationFrame(animate);
+    else { el.textContent = target.toLocaleString(); setTimeout(()=>el.classList.remove('counting'), 200); }
+  };
+  requestAnimationFrame(animate);
+};
+
+// Touch swipe support for carousels
+document.querySelectorAll('.carousel-track').forEach(track => {
+  let startX = 0, scrollLeft = 0, isDown = false;
+  track.addEventListener('touchstart', e => {
+    isDown = true; startX = e.touches[0].pageX; scrollLeft = track.scrollLeft;
+  }, {passive:true});
+  track.addEventListener('touchmove', e => {
+    if (!isDown) return;
+    const x = e.touches[0].pageX;
+    track.scrollLeft = scrollLeft - (x - startX);
+  }, {passive:true});
+  track.addEventListener('touchend', () => isDown = false);
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  // Cmd/Ctrl + K — focus search
+  if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+    const search = document.querySelector('input[name="q"], input[type="search"]');
+    if (search) { e.preventDefault(); search.focus(); }
+  }
+  // / — focus first input on page
+  if (e.key === '/' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+    const inp = document.querySelector('input:not([type=hidden]):not([disabled])');
+    if (inp) { e.preventDefault(); inp.focus(); }
+  }
+});
+
+// Smooth count-up for [data-count] when in viewport (override existing)
+const countObserver = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const el = entry.target;
+      const target = parseInt(el.dataset.count, 10);
+      if (!isNaN(target) && !el.dataset.counted) {
+        countUp(el, target);
+        el.dataset.counted = '1';
+      }
+    }
+  });
+}, {threshold:.2});
+document.querySelectorAll('[data-count]').forEach(el => countObserver.observe(el));
+
+// Auto theme-color update on scroll (subtle)
+const themeMeta = document.querySelector('meta[name="theme-color"]');
+if (themeMeta) {
+  let scrolled = false;
+  window.addEventListener('scroll', () => {
+    const isScrolled = window.scrollY > 100;
+    if (scrolled !== isScrolled) {
+      scrolled = isScrolled;
+      themeMeta.setAttribute('content', scrolled ? '#1E40AF' : '#3B82F6');
+    }
+  }, {passive:true});
+}
 </script>
 <?php
 }
@@ -1044,6 +1469,8 @@ function render_sidebar(string $type, string $active): void {
   </div>
 </aside>
 <?php
+    // Mobile bottom nav (avto)
+    if ($type === 'user' || $type === 'admin') render_bottom_nav($type, $active);
 }
 
 function do_logout(): void {
@@ -1055,4 +1482,40 @@ function do_logout(): void {
     session_destroy();
     header('Location: /');
     exit;
+}
+
+/**
+ * Mobile bottom navigation (faqat user paneli uchun)
+ */
+function render_bottom_nav(string $type, string $active): void {
+    $items = [];
+    if ($type === 'user') {
+        $items = [
+            ['dashboard','/user/',           'dashboard',  t('dashboard')],
+            ['tests',    '/user/testlar.php','document',   t('tests')],
+            ['rating',   '/user/reyting.php','trophy',     t('rating')],
+            ['tariffs',  '/user/tariflar.php','gem',       t('tariffs')],
+            ['profile',  '/user/profil.php', 'user',       t('profile')],
+        ];
+    } elseif ($type === 'admin') {
+        $items = [
+            ['dashboard','/admin/',           'dashboard', t('dashboard')],
+            ['users',    '/admin/users.php', 'users',     t('users')],
+            ['payments', '/admin/tolovlar.php','card',    t('payments')],
+            ['questions','/admin/savollar.php','help',    t('questions')],
+            ['settings', '/admin/sozlamalar.php','settings',t('settings')],
+        ];
+    }
+    if (empty($items)) return;
+?>
+<nav class="bottom-nav bottom-nav-show">
+  <?php foreach ($items as $it): ?>
+    <a href="<?= $it[1] ?>" class="<?= $active===$it[0]?'active':'' ?>">
+      <?= icon($it[2], 22) ?>
+      <span><?= $it[3] ?></span>
+    </a>
+  <?php endforeach; ?>
+</nav>
+<script>document.body.classList.add('has-bottom-nav');</script>
+<?php
 }
