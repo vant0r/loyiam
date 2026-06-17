@@ -71,6 +71,7 @@ CREATE TABLE IF NOT EXISTS `tickets` (
   `ticket_number`  INT NOT NULL,
   `questions_count` INT NOT NULL DEFAULT 20,
   `time_minutes`   INT NOT NULL DEFAULT 25,
+  `image`          VARCHAR(255) DEFAULT NULL,
   `status`         VARCHAR(20) DEFAULT 'active',
   `created_at`     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY `uk_number` (`ticket_number`)
@@ -304,6 +305,9 @@ INSERT IGNORE INTO `settings` (setting_key, setting_value, setting_type, setting
 ('hero_stats_users', '5000', 'text', 'homepage'),
 ('hero_stats_questions', '3000', 'text', 'homepage'),
 ('hero_stats_success', '98', 'text', 'homepage'),
+('default_question_image', '/assets/images/default-question.svg', 'image', 'general'),
+('default_ticket_image', '/assets/images/default-ticket.svg', 'image', 'general'),
+('default_questions_per_ticket', '20', 'number', 'general'),
 ('telegram_bot_token', '', 'text', 'telegram'),
 ('telegram_admin_chat_id', '', 'text', 'telegram');
 

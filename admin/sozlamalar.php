@@ -36,6 +36,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     }
+    // Default ticket image
+    elseif (in_array($action, ['default_ticket_image','default_question_image']) && !empty($_FILES['image']['name'])) {
+        $up = Security::upload_image($_FILES['image'], $action);
+        if ($up['ok']) {
+            db()->execute("INSERT INTO settings (setting_key,setting_value,setting_type,setting_group) VALUES (?,?,'image','general')
+                           ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)",
+                           [$action, $up['url']]);
+            $msg = 'Standart rasm yangilandi';
+        } else {
+            $msg = $up['error'] ?? 'Yuklash xatosi';
+        }
+    }
     // Boshqa sozlamalar (group bo'yicha)
     elseif ($action === 'save_group') {
         $group = $_POST['group'] ?? '';
@@ -102,37 +114,150 @@ render_head(t('settings'));
 
   <?php elseif ($tab === 'logo'): ?>
   <div class="grid-2">
+    <!-- LOGO -->
     <div class="card">
-      <h3 style="font-size:18px;font-weight:700;margin-bottom:14px">🖼️ <?= lang()==='uz_cyrillic' ? 'Логотипни юклаш' : 'Logotipni yuklash' ?></h3>
-      <div class="text-center mb-3">
+      <div class="setting-section-head">
+        <h3>🎨 <?= lang()==='uz_cyrillic' ? 'Логотипни юклаш' : 'Logotipni yuklash' ?></h3>
+        <span class="badge badge-info">Barcha qurilmalarda</span>
+      </div>
+      <div class="logo-preview">
         <?php if (setting('site_logo')): ?>
-          <img src="<?= e(setting('site_logo')) ?>" style="max-height:100px;margin:0 auto">
+          <img src="<?= e(setting('site_logo')) ?>" alt="Logo">
         <?php else: ?>
-          <div style="height:100px;background:var(--bg-soft);border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--text-mute)">No logo</div>
+          <div class="logo-empty">
+            <?= icon('image', 32) ?>
+            <span>Logo yo'q</span>
+          </div>
         <?php endif; ?>
       </div>
-      <form method="post" enctype="multipart/form-data">
+      <form method="post" enctype="multipart/form-data" id="logoForm">
         <input type="hidden" name="action" value="logo">
-        <div class="form-group"><input type="file" name="logo" accept="image/*" class="form-control" required></div>
-        <button class="btn btn-primary btn-block"><?= lang()==='uz_cyrillic' ? 'Юклаш' : 'Yuklash' ?></button>
+        <div class="image-uploader" id="logoDrop">
+          <input type="file" name="logo" accept="image/*" id="logoInput" hidden required>
+          <div class="image-uploader-empty">
+            <?= icon('upload', 32) ?>
+            <strong>Logo tanlash</strong>
+            <small>SVG, PNG (shaffof orqa fon)</small>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-block mt-2"><?= icon('upload', 16) ?> Yuklash</button>
       </form>
+      <div class="form-help mt-2">
+        <strong>Tavsiya:</strong> SVG yoki shaffof PNG (200×60px proporsiya), max 1MB
+      </div>
     </div>
+
+    <!-- BANNER -->
     <div class="card">
-      <h3 style="font-size:18px;font-weight:700;margin-bottom:14px">🖼️ <?= lang()==='uz_cyrillic' ? 'Баннерни юклаш' : 'Bannerni yuklash' ?></h3>
-      <div class="text-center mb-3">
+      <div class="setting-section-head">
+        <h3>🌅 <?= lang()==='uz_cyrillic' ? 'Баннерни юклаш' : 'Bannerni yuklash' ?></h3>
+        <span class="badge badge-warning">Faqat desktop/tablet</span>
+      </div>
+      <div class="banner-preview">
         <?php if (setting('site_banner')): ?>
-          <img src="<?= e(setting('site_banner')) ?>" style="max-height:140px;border-radius:8px">
+          <img src="<?= e(setting('site_banner')) ?>" alt="Banner">
         <?php else: ?>
-          <div style="height:140px;background:var(--bg-soft);border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--text-mute)">No banner</div>
+          <div class="banner-empty">
+            <?= icon('image', 48) ?>
+            <span>Banner yo'q</span>
+          </div>
         <?php endif; ?>
       </div>
       <form method="post" enctype="multipart/form-data">
         <input type="hidden" name="action" value="banner">
-        <div class="form-group"><input type="file" name="banner" accept="image/*" class="form-control" required></div>
-        <button class="btn btn-primary btn-block"><?= lang()==='uz_cyrillic' ? 'Юклаш' : 'Yuklash' ?></button>
+        <div class="image-uploader" id="bannerDrop">
+          <input type="file" name="banner" accept="image/*" id="bannerInput" hidden required>
+          <div class="image-uploader-empty">
+            <?= icon('upload', 32) ?>
+            <strong>Banner tanlash</strong>
+            <small>JPG, PNG, WEBP (1200×400px tavsiya)</small>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-block mt-2"><?= icon('upload', 16) ?> Yuklash</button>
       </form>
+      <div class="form-help mt-2">
+        <strong>Eslatma:</strong> Banner mobil qurilmalarda yashirinadi
+      </div>
+    </div>
+
+    <!-- DEFAULT IMAGES -->
+    <div class="card" style="grid-column:1 / -1">
+      <div class="setting-section-head">
+        <h3>🖼️ Standart rasmlar</h3>
+        <span class="badge badge-mute">Fallback</span>
+      </div>
+      <p class="text-soft mb-3" style="font-size:13px">
+        Bilet yoki savolga rasm yuklanmasa, mana shu standart rasmlar ko'rsatiladi
+      </p>
+      <div class="grid-2">
+        <div>
+          <h4 style="font-size:14px;margin-bottom:8px">Standart bilet rasmi</h4>
+          <div class="default-img-preview">
+            <img src="<?= e(setting('default_ticket_image', '/assets/images/default-ticket.svg')) ?>" alt="">
+          </div>
+          <form method="post" enctype="multipart/form-data" class="mt-2">
+            <input type="hidden" name="action" value="default_ticket_image">
+            <input type="file" name="image" accept="image/*" class="form-control" required>
+            <button class="btn btn-light btn-sm btn-block mt-1">Yangilash</button>
+          </form>
+        </div>
+        <div>
+          <h4 style="font-size:14px;margin-bottom:8px">Standart savol rasmi</h4>
+          <div class="default-img-preview">
+            <img src="<?= e(setting('default_question_image', '/assets/images/default-question.svg')) ?>" alt="">
+          </div>
+          <form method="post" enctype="multipart/form-data" class="mt-2">
+            <input type="hidden" name="action" value="default_question_image">
+            <input type="file" name="image" accept="image/*" class="form-control" required>
+            <button class="btn btn-light btn-sm btn-block mt-1">Yangilash</button>
+          </form>
+        </div>
+      </div>
     </div>
   </div>
+
+  <style>
+    .setting-section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:8px}
+    .setting-section-head h3{font-size:18px;font-weight:700;margin:0}
+    .logo-preview, .banner-preview, .default-img-preview{
+      background:repeating-conic-gradient(#F1F5F9 0% 25%, #fff 0% 50%) 50%/16px 16px;
+      border-radius:var(--r-lg);padding:24px;margin-bottom:14px;text-align:center;
+      border:1px solid var(--border);min-height:80px;display:flex;align-items:center;justify-content:center
+    }
+    .banner-preview{padding:0;overflow:hidden;aspect-ratio:3/1}
+    .default-img-preview{padding:0;aspect-ratio:16/9;overflow:hidden;background:var(--bg-soft)}
+    .logo-preview img{max-height:64px;max-width:100%}
+    .banner-preview img, .default-img-preview img{width:100%;height:100%;object-fit:cover}
+    .logo-empty, .banner-empty{display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--text-mute)}
+    .image-uploader{position:relative;border:2px dashed var(--border);border-radius:var(--r-lg);
+      padding:24px;text-align:center;cursor:pointer;background:var(--bg-soft);transition:all .25s}
+    .image-uploader:hover{border-color:var(--primary);background:var(--primary-50)}
+    .image-uploader.is-dragover{border-color:var(--primary);background:var(--primary-100);transform:scale(1.01)}
+    .image-uploader-empty{display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--text-soft)}
+    .image-uploader-empty strong{font-size:14px;color:var(--text)}
+    .image-uploader-empty small{font-size:11px;color:var(--text-mute)}
+  </style>
+  <script>
+    // Drag&drop for both
+    ['logoDrop','bannerDrop'].forEach(id => {
+      const drop = document.getElementById(id);
+      if (!drop) return;
+      const input = drop.querySelector('input[type=file]');
+      drop.addEventListener('click', () => input.click());
+      drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('is-dragover'); });
+      drop.addEventListener('dragleave', () => drop.classList.remove('is-dragover'));
+      drop.addEventListener('drop', e => {
+        e.preventDefault(); drop.classList.remove('is-dragover');
+        if (e.dataTransfer.files[0]) {
+          input.files = e.dataTransfer.files;
+          drop.querySelector('strong').textContent = input.files[0].name;
+        }
+      });
+      input.addEventListener('change', () => {
+        if (input.files[0]) drop.querySelector('strong').textContent = input.files[0].name;
+      });
+    });
+  </script>
 
   <?php elseif ($tab === 'contact'): ?>
   <div class="card">

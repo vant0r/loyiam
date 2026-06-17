@@ -120,6 +120,8 @@ function self_finish_test(int $aid, int $uid, string $lf): void {
 // ============================================================
 // Savollarni yuklash (1 marta — bilet bo'yicha)
 // ============================================================
+$default_question_image = setting('default_question_image', '/assets/images/default-question.svg');
+
 $questions = db()->fetchAll(
     "SELECT id, question_$lang_field q, image, category, difficulty
      FROM questions WHERE ticket_id=? AND status='active'
@@ -176,7 +178,9 @@ render_head(t('test_taking'), ['extra_head' => '<style>
 .q-num{font-size:14px;color:var(--text-soft);margin-bottom:8px;display:flex;justify-content:space-between}
 .q-text{font-size:18px;font-weight:600;line-height:1.5;margin-bottom:24px;color:var(--text)}
 .q-image{margin-bottom:24px;text-align:center}
-.q-image img{max-height:300px;border-radius:var(--r-md);border:1px solid var(--border)}
+.q-image img{max-height:300px;border-radius:var(--r-md);border:1px solid var(--border);width:auto;max-width:100%;transition:transform .4s var(--ease-out)}
+.q-image img:hover{transform:scale(1.02)}
+.q-image img.is-default{opacity:.85;border-style:dashed}
 .answer-list{display:flex;flex-direction:column;gap:12px;flex:1}
 .answer-item{padding:16px 20px;border:2px solid var(--border);border-radius:var(--r-md);
   cursor:pointer;display:flex;align-items:flex-start;gap:14px;transition:all .15s;background:#fff}
@@ -252,9 +256,10 @@ render_head(t('test_taking'), ['extra_head' => '<style>
         </span>
       </div>
       <h2 class="q-text"><?= nl2br(e($q['q'])) ?></h2>
-      <?php if (!empty($q['image'])): ?>
-        <div class="q-image"><img src="<?= e($q['image']) ?>" alt=""></div>
-      <?php endif; ?>
+      <div class="q-image">
+        <img src="<?= e($q['image'] ?: $default_question_image) ?>" alt=""
+             <?= !$q['image'] ? 'class="is-default"' : '' ?>>
+      </div>
       <div class="answer-list">
         <?php foreach ($q['answers'] as $aIdx => $a):
           $letter = chr(65 + $aIdx);

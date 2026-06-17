@@ -43,9 +43,41 @@ render_header('home');
         </div>
       </div>
     </div>
-    <div class="hero-image fade-up">🚗</div>
+
+    <!-- Banner — faqat desktop/tablet'da -->
+    <div class="hero-banner-wrap fade-up">
+      <?php $banner_url = setting('site_banner'); ?>
+      <?php if ($banner_url && $banner_url !== '/assets/images/banner.svg'): ?>
+        <div class="hero-banner">
+          <img src="<?= e($banner_url) ?>" alt="" loading="eager">
+          <div class="hero-banner-shine"></div>
+        </div>
+      <?php else: ?>
+        <div class="hero-image">🚗</div>
+      <?php endif; ?>
+    </div>
   </div>
 </section>
+
+<style>
+.hero-banner-wrap{display:flex;justify-content:center;align-items:center}
+.hero-banner{position:relative;border-radius:32px;overflow:hidden;box-shadow:var(--shadow-primary-lg);
+  transform:rotate(-1.5deg);transition:transform .5s var(--ease-out);width:100%;max-width:500px;aspect-ratio:1}
+.hero-banner:hover{transform:rotate(0) scale(1.02)}
+.hero-banner img{width:100%;height:100%;object-fit:cover;display:block}
+.hero-banner-shine{position:absolute;top:0;left:-100%;width:60%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.3),transparent);
+  animation:shine 3s ease-in-out infinite;animation-delay:1s}
+@keyframes shine{0%,100%{left:-60%}50%{left:120%}}
+
+/* Banner faqat desktop/tablet'da */
+@media(max-width:720px){
+  .hero-banner-wrap{display:none !important}
+  .hero{padding:48px 0 32px}
+  .hero-grid{grid-template-columns:1fr;text-align:center}
+  .hero-grid .fade-up > .flex{justify-content:center}
+}
+</style>
 
 <!-- ============== TRUSTED BY (logo wall - placeholder) ============== -->
 <section style="padding:32px 0;background:#fff;border-bottom:1px solid var(--border)">

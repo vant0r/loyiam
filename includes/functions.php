@@ -1012,6 +1012,235 @@ html{scroll-behavior:smooth;scroll-padding-top:80px}
 /* Selection color */
 ::selection{background:var(--primary-200);color:var(--primary-900)}
 ::-moz-selection{background:var(--primary-200);color:var(--primary-900)}
+
+/* ============================================================
+   PREMIUM ANIMATIONS v2.3 — Smoother, more refined
+   ============================================================ */
+
+/* Refined easing curves */
+:root{
+  --ease-soft:cubic-bezier(.22,.61,.36,1);
+  --ease-fluid:cubic-bezier(.4,.0,.2,1);
+  --ease-back:cubic-bezier(.34,1.56,.64,1);
+  --ease-snap:cubic-bezier(.4,.0,.6,1);
+  --ease-bounce:cubic-bezier(.68,-.55,.265,1.55);
+}
+
+/* Smoother fade-up with refined timing */
+@keyframes fadeUpRefined{
+  0%{opacity:0;transform:translate3d(0,24px,0) scale(.96);filter:blur(4px)}
+  60%{filter:blur(0)}
+  100%{opacity:1;transform:translate3d(0,0,0) scale(1);filter:blur(0)}
+}
+.fade-up{animation:fadeUpRefined .8s var(--ease-soft) both;will-change:transform,opacity}
+
+/* Improved stagger */
+.stagger > *{animation:fadeUpRefined .7s var(--ease-soft) both;will-change:transform,opacity}
+.stagger > *:nth-child(1){animation-delay:0s}
+.stagger > *:nth-child(2){animation-delay:.07s}
+.stagger > *:nth-child(3){animation-delay:.14s}
+.stagger > *:nth-child(4){animation-delay:.21s}
+.stagger > *:nth-child(5){animation-delay:.28s}
+.stagger > *:nth-child(6){animation-delay:.35s}
+.stagger > *:nth-child(7){animation-delay:.42s}
+.stagger > *:nth-child(8){animation-delay:.49s}
+.stagger > *:nth-child(n+9){animation-delay:.56s}
+
+/* Smoother card hover */
+.card-hover{transition:transform .4s var(--ease-soft), box-shadow .4s var(--ease-soft), border-color .25s ease}
+.card-hover:hover{transform:translate3d(0,-4px,0);box-shadow:var(--shadow-md);border-color:var(--primary-200)}
+
+/* Refined button interactions */
+.btn{transition:transform .15s var(--ease-snap), box-shadow .25s var(--ease-soft),
+                background .2s ease, color .2s ease, border-color .2s ease}
+.btn-primary{transition:all .25s var(--ease-soft)}
+.btn-primary:hover{transform:translate3d(0,-2px,0)}
+.btn-primary:active{transform:translate3d(0,1px,0);transition-duration:.1s}
+
+/* Smooth icon rotation on hover */
+.btn:hover .icon{transition:transform .35s var(--ease-back)}
+
+/* Refined modal entry */
+@keyframes modalSlide{
+  0%{opacity:0;transform:translate3d(0,40px,0) scale(.92);filter:blur(8px)}
+  100%{opacity:1;transform:translate3d(0,0,0) scale(1);filter:blur(0)}
+}
+.modal{animation:modalSlide .45s var(--ease-soft) both}
+.modal-backdrop.show{animation:fadeIn .25s var(--ease-fluid) both}
+
+/* Refined toast slide */
+@keyframes toastSlide{
+  0%{opacity:0;transform:translate3d(120%,0,0) scale(.9)}
+  60%{transform:translate3d(-8px,0,0) scale(1.02)}
+  100%{opacity:1;transform:translate3d(0,0,0) scale(1)}
+}
+.toast{animation:toastSlide .55s var(--ease-back) both}
+
+/* Smooth page transition */
+@keyframes pageEnterSmooth{
+  0%{opacity:0;transform:translate3d(0,12px,0)}
+  100%{opacity:1;transform:translate3d(0,0,0)}
+}
+main, .container > section:first-child{animation:pageEnterSmooth .6s var(--ease-soft) both}
+
+/* Heading reveal */
+@keyframes headingReveal{
+  0%{opacity:0;transform:translate3d(0,16px,0);clip-path:inset(0 100% 0 0)}
+  100%{opacity:1;transform:translate3d(0,0,0);clip-path:inset(0 0 0 0)}
+}
+.hero h1{animation:headingReveal 1s var(--ease-soft) .1s both}
+.hero p.lead{animation:fadeUpRefined .9s var(--ease-soft) .3s both}
+.hero .flex.gap-3{animation:fadeUpRefined .9s var(--ease-soft) .5s both}
+.hero-stats{animation:fadeUpRefined .9s var(--ease-soft) .7s both}
+
+/* Refined hover-image effect */
+img.zoom-in{transition:transform .6s var(--ease-soft)}
+.hover-zoom:hover img.zoom-in,
+.hover-zoom:hover > img{transform:scale(1.05)}
+
+/* Smooth progress animation */
+.progress-bar{transition:width 1.2s var(--ease-soft)}
+
+/* Refined sidebar transition */
+.sidebar{transition:transform .4s var(--ease-soft), left .4s var(--ease-soft)}
+
+/* Better link hover */
+a:not(.btn){transition:color .2s ease, opacity .2s ease}
+
+/* Smoother form interactions */
+.form-control,.form-select,.form-textarea{
+  transition:border-color .2s ease, box-shadow .25s var(--ease-soft), background .2s ease;
+  will-change:border-color, box-shadow
+}
+
+/* Floating label refined */
+.form-float .form-label{transition:all .25s var(--ease-soft)}
+
+/* Smooth checkbox/radio */
+input[type=checkbox], input[type=radio]{transition:all .15s ease;cursor:pointer}
+
+/* Tab transition */
+.tabs a, .tabs button{transition:background .25s var(--ease-soft), color .2s ease, box-shadow .25s var(--ease-soft)}
+
+/* Pricing card hover refined */
+.pricing-card{transition:transform .5s var(--ease-soft), box-shadow .4s var(--ease-soft), border-color .3s ease;will-change:transform}
+.pricing-card:hover{transform:translate3d(0,-8px,0);box-shadow:var(--shadow-lg)}
+.pricing-card.popular:hover{transform:scale(1.05) translate3d(0,-8px,0)}
+
+/* Stat card hover refined */
+.stat-card{transition:transform .35s var(--ease-soft), box-shadow .3s ease, border-color .25s ease;will-change:transform}
+.stat-card:hover{transform:translate3d(0,-3px,0)}
+
+/* Smoother count animation */
+.stat-num.counting{transition:transform .15s var(--ease-back)}
+
+/* Loading skeleton refined */
+@keyframes skeletonShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.skeleton{
+  background:linear-gradient(110deg, var(--bg-mute) 8%, var(--bg-hover) 18%, var(--bg-mute) 33%);
+  background-size:200% 100%;
+  animation:skeletonShimmer 1.6s ease-in-out infinite
+}
+
+/* Smoother accordion */
+.faq-item{transition:border-color .25s ease, box-shadow .3s ease}
+.faq-q{transition:background .25s ease, color .2s ease}
+.faq-a{transition:max-height .45s var(--ease-soft), padding .35s var(--ease-soft)}
+.faq-q .icon{transition:transform .35s var(--ease-back), color .2s ease}
+
+/* Smoother nav menu */
+.nav-menu a{transition:color .2s ease, opacity .2s ease}
+.nav-menu a::after{transition:transform .3s var(--ease-soft);transform-origin:center}
+.nav-menu a.active::after, .nav-menu a:hover::after{transform:scaleX(1.1)}
+
+/* Lang switch smoother */
+.lang-switch a{transition:all .25s var(--ease-soft);will-change:background, color}
+
+/* Footer link smooth */
+.footer a{transition:color .25s ease, transform .2s ease}
+.footer a:hover{transform:translateX(2px)}
+
+/* Smoother social icons */
+.footer-social a{transition:transform .35s var(--ease-back), background .25s ease, color .2s ease;will-change:transform}
+.footer-social a:hover{transform:translate3d(0,-3px,0) rotate(-5deg) scale(1.05)}
+
+/* Sidebar menu refined */
+.sidebar-menu a{transition:background .25s ease, color .2s ease, padding-left .25s var(--ease-soft);position:relative;overflow:hidden}
+.sidebar-menu a::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--primary-300);
+  transform:translateX(-100%);transition:transform .3s var(--ease-soft)}
+.sidebar-menu a:hover{padding-left:18px}
+.sidebar-menu a:hover::before{transform:translateX(0)}
+.sidebar-menu a.active::before{transform:translateX(0);background:#fff}
+
+/* Smoother table rows */
+table tbody tr{transition:background .2s ease, transform .2s ease}
+
+/* Image lazy fade */
+img[loading="lazy"]{transition:opacity .5s var(--ease-soft);opacity:1}
+img[loading="lazy"][data-loading]{opacity:0}
+
+/* Will-change cleanup (after animation) */
+.fade-up.animation-end{will-change:auto}
+
+/* Refined ripple */
+@keyframes rippleSmooth{
+  0%{transform:scale(0);opacity:.5}
+  100%{transform:scale(2.8);opacity:0}
+}
+.btn .ripple{animation:rippleSmooth .65s var(--ease-fluid)}
+
+/* Smoother dropdown */
+.dropdown-menu{transition:opacity .25s var(--ease-soft), transform .3s var(--ease-soft), visibility 0s linear .25s}
+.dropdown.open .dropdown-menu{transition:opacity .25s var(--ease-soft), transform .3s var(--ease-back), visibility 0s linear 0s}
+
+/* ============================================================
+   ENHANCED RESPONSIVENESS
+   ============================================================ */
+
+/* Smoother mobile hero */
+@media(max-width:480px){
+  .hero h1{animation-duration:.8s}
+  .hero p.lead{animation-duration:.7s;animation-delay:.2s}
+  .hero-stats{animation-delay:.4s}
+}
+
+/* Reduce motion hover effects on touch devices */
+@media (hover:none){
+  .card-hover:hover, .pricing-card:hover, .stat-card:hover{transform:none}
+  .btn-primary:hover{transform:none}
+}
+
+/* Disable will-change on slow devices */
+@media (max-width:480px) and (prefers-reduced-motion:no-preference){
+  .pricing-card, .stat-card, .card-hover{will-change:auto}
+}
+
+/* Smooth horizontal scroll */
+.carousel-track{
+  scroll-behavior:smooth;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
+}
+
+/* Better focus styles */
+:focus-visible{outline:2px solid var(--primary);outline-offset:3px;border-radius:4px;
+  transition:outline-offset .15s ease}
+
+/* Print refinements */
+@media print {
+  *,*::before,*::after{
+    background:transparent !important;
+    color:#000 !important;
+    box-shadow:none !important;
+    text-shadow:none !important;
+    animation:none !important;
+    transition:none !important;
+  }
+}
+
+/* Smooth scrollbar fade */
+*::-webkit-scrollbar-thumb{background:transparent;transition:background .3s ease}
+*:hover::-webkit-scrollbar-thumb{background:var(--border-strong)}
 </style>
 <?php if (!empty($opts['extra_head'])) echo $opts['extra_head']; ?>
 </head>
@@ -1394,6 +1623,68 @@ if (themeMeta) {
     }
   }, {passive:true});
 }
+
+// =============== ANIMATION CLEANUP (performance) ===============
+// will-change ni animation tugagach o'chirish — RAM tejash
+document.addEventListener('animationend', e => {
+  if (e.target.classList.contains('fade-up') ||
+      e.target.classList.contains('reveal-on-scroll')) {
+    e.target.classList.add('animation-end');
+  }
+}, true);
+
+// Smoother stagger (animate only when visible)
+const staggerObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('stagger-visible');
+      staggerObserver.unobserve(entry.target);
+    }
+  });
+}, {threshold: 0.1, rootMargin: '0px 0px -60px 0px'});
+document.querySelectorAll('.stagger').forEach(el => {
+  el.classList.add('stagger-paused');
+  staggerObserver.observe(el);
+});
+
+// Smoother image loading (skeleton effect)
+document.querySelectorAll('img[loading="lazy"]').forEach(img => {
+  if (img.complete) return;
+  img.dataset.loading = '1';
+  img.addEventListener('load', () => {
+    delete img.dataset.loading;
+    img.style.opacity = '1';
+  }, {once:true});
+  img.addEventListener('error', () => {
+    delete img.dataset.loading;
+  }, {once:true});
+});
+
+// Smoother modal close — animation aware
+const modalCloseHandler = (e) => {
+  if (e.target.classList.contains('modal-backdrop') ||
+      e.target.closest('[data-modal-close]')) {
+    const backdrop = e.target.closest('.modal-backdrop');
+    if (backdrop) {
+      const modal = backdrop.querySelector('.modal');
+      if (modal) {
+        modal.style.animation = 'modalSlide .3s var(--ease-soft) reverse';
+        backdrop.style.animation = 'fadeIn .25s ease reverse';
+        setTimeout(() => {
+          backdrop.classList.remove('show');
+          modal.style.animation = '';
+          backdrop.style.animation = '';
+          document.body.style.overflow = '';
+        }, 300);
+      } else {
+        backdrop.classList.remove('show');
+        document.body.style.overflow = '';
+      }
+    }
+  }
+};
+// Replace existing modal close
+document.addEventListener('click', modalCloseHandler);
 </script>
 <?php
 }
