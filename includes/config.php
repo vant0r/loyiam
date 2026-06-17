@@ -78,7 +78,7 @@ if (isset($_GET['setlang']) && in_array($_GET['setlang'], ['uz_latin','uz_cyrill
 }
 
 // Auto-migration (bir marta — .installed mavjud bo'lsa)
-if (is_file(BASE_PATH . '/.installed') && !is_file(BASE_PATH . '/.migrated_v2.3')) {
+if (is_file(BASE_PATH . '/.installed') && !is_file(BASE_PATH . '/.migrated_v2.4')) {
     @require_once __DIR__ . '/migrate.php';
     if (function_exists('maybe_auto_migrate')) maybe_auto_migrate();
 }

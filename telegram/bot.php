@@ -301,21 +301,18 @@ function cb_admin_approve(int $chatId, int $msgId, int $payId): void {
             $expires = date('Y-m-d H:i:s', strtotime("+{$tariff['duration_days']} days"));
             db()->execute("UPDATE users SET tariff_id=?, tariff_expires_at=? WHERE id=?",
                 [$p['tariff_id'], $expires, $p['user_id']]);
+
+            // Notification yuboramiz (DB + Telegram)
+            require_once __DIR__ . '/../includes/notifications.php';
+            Notify::send((int)$p['user_id'], 'payment_approved',
+                "✅ To'lov tasdiqlandi!",
+                $tariff['name_latin'] . " tarifingiz faollashtirildi ({$tariff['duration_days']} kun)",
+                ['link' => '/user/tariflar.php', 'icon' => 'check-circle', 'telegram' => true]);
         }
     }
 
-    // Foydalanuvchiga xabar
-    $u = db()->fetch("SELECT telegram_id FROM users WHERE id = ?", [$p['user_id']]);
-    if ($u && $u['telegram_id']) {
-        TelegramAPI::sendMessage($u['telegram_id'],
-            "✅ <b>To'lovingiz tasdiqlandi!</b>\n\n"
-            . "To'lov #{$payId} muvaffaqiyatli tasdiqlandi.\n"
-            . "Tarifingiz faollashtirildi! 🎉\n\n"
-            . "Endi /test buyrug'i bilan testlarni boshlashingiz mumkin.");
-    }
-
     TelegramAPI::editMessage($chatId, $msgId,
-        "✅ <b>TASDIQLANDI</b>\n\nTo'lov #{$payId} qabul qilindi.");
+        "✅ <b>TASDIQLANDI</b>\n\nTo'lov #{$payId} qabul qilindi va foydalanuvchi xabardor qilindi.");
 }
 
 function cb_admin_reject(int $chatId, int $msgId, int $payId): void {
@@ -327,13 +324,11 @@ function cb_admin_reject(int $chatId, int $msgId, int $payId): void {
 
     db()->execute("UPDATE payments SET status='rejected' WHERE id=?", [$payId]);
 
-    $u = db()->fetch("SELECT telegram_id FROM users WHERE id = ?", [$p['user_id']]);
-    if ($u && $u['telegram_id']) {
-        TelegramAPI::sendMessage($u['telegram_id'],
-            "❌ <b>To'lov rad etildi</b>\n\n"
-            . "To'lov #{$payId} rad etildi. Iltimos, admin bilan bog'laning yoki qayta urinib ko'ring.\n\n"
-            . "/aloqa");
-    }
+    require_once __DIR__ . '/../includes/notifications.php';
+    Notify::send((int)$p['user_id'], 'payment_rejected',
+        "❌ To'lov rad etildi",
+        "Iltimos, admin bilan bog'laning yoki qayta urinib ko'ring",
+        ['link' => '/user/tariflar.php', 'icon' => 'x-circle', 'telegram' => true]);
 
     TelegramAPI::editMessage($chatId, $msgId,
         "❌ <b>RAD ETILDI</b>\n\nTo'lov #{$payId} rad etildi.");

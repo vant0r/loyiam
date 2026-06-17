@@ -1014,6 +1014,47 @@ html{scroll-behavior:smooth;scroll-padding-top:80px}
 ::selection{background:var(--primary-200);color:var(--primary-900)}
 ::-moz-selection{background:var(--primary-200);color:var(--primary-900)}
 
+/* ============== NOTIFICATIONS ============== */
+.notif-wrap{position:relative;display:inline-block}
+.notif-bell{position:relative}
+.notif-badge{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 5px;
+  background:var(--danger);color:#fff;border-radius:9px;font-size:10px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;border:2px solid #fff;
+  animation:notifBadgePop .4s var(--ease-back) both}
+@keyframes notifBadgePop{0%{transform:scale(0)}60%{transform:scale(1.2)}100%{transform:scale(1)}}
+.notif-dropdown{position:absolute;top:calc(100% + 8px);right:0;width:380px;max-width:calc(100vw - 32px);
+  background:#fff;border:1px solid var(--border);border-radius:var(--r-lg);
+  box-shadow:0 12px 40px rgba(15,23,42,.15);
+  opacity:0;visibility:hidden;transform:translateY(-8px) scale(.96);
+  transition:all .25s var(--ease-soft);z-index:var(--z-dropdown);overflow:hidden}
+.notif-wrap.open .notif-dropdown{opacity:1;visibility:visible;transform:translateY(0) scale(1)}
+.notif-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;
+  justify-content:space-between;align-items:center;font-size:14px}
+.notif-list{max-height:400px;overflow-y:auto;padding:8px}
+.notif-loading{padding:8px}
+.notif-item{display:flex;gap:12px;padding:12px;border-radius:var(--r-md);cursor:pointer;
+  transition:background .2s ease;text-decoration:none;color:inherit;align-items:flex-start;position:relative}
+.notif-item:hover{background:var(--bg-soft)}
+.notif-item.unread{background:var(--primary-50)}
+.notif-item.unread::before{content:'';position:absolute;left:4px;top:50%;width:6px;height:6px;
+  border-radius:50%;background:var(--primary);transform:translateY(-50%)}
+.notif-icon-wrap{flex-shrink:0;width:38px;height:38px;border-radius:var(--r-md);
+  display:flex;align-items:center;justify-content:center}
+.notif-icon-wrap.success{background:var(--success-light);color:var(--success-dark)}
+.notif-icon-wrap.danger{background:var(--danger-light);color:var(--danger-dark)}
+.notif-icon-wrap.warning{background:var(--warning-light);color:var(--warning-dark)}
+.notif-icon-wrap.info{background:var(--primary-light);color:var(--primary-dark)}
+.notif-body{flex:1;min-width:0}
+.notif-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px}
+.notif-msg{font-size:12px;color:var(--text-soft);line-height:1.45;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.notif-time{font-size:11px;color:var(--text-mute);margin-top:4px}
+.notif-empty{padding:32px 16px;text-align:center;color:var(--text-mute);font-size:13px}
+
+@media(max-width:520px){
+  .notif-dropdown{position:fixed;top:60px;right:8px;left:8px;width:auto;max-height:80vh}
+}
+
 /* ============================================================
    PREMIUM ANIMATIONS v2.3 — Smoother, more refined
    ============================================================ */
@@ -1271,7 +1312,33 @@ function render_header(string $active = ''): void {
         <a href="?setlang=uz_cyrillic" class="<?= lang()==='uz_cyrillic'?'active':'' ?>">Кр</a>
       </div>
       <?php if (is_logged_in()): ?>
-        <?php $u = current_user(); $panel = is_developer()?'/developer/':(is_admin()?'/admin/':'/user/'); ?>
+        <?php $u = current_user(); $panel = is_developer()?'/developer/':(is_admin()?'/admin/':'/user/');
+              $unread = class_exists('Notify') ? Notify::unread($u['id']) : 0; ?>
+
+        <!-- Notification bell -->
+        <div class="notif-wrap" id="notifWrap">
+          <button class="btn-icon btn-light btn-sm notif-bell" onclick="toggleNotif(event)" aria-label="Notifications">
+            <?= icon('bell', 18) ?>
+            <?php if ($unread > 0): ?>
+              <span class="notif-badge"><?= $unread > 99 ? '99+' : $unread ?></span>
+            <?php endif; ?>
+          </button>
+          <div class="notif-dropdown" id="notifDropdown">
+            <div class="notif-header">
+              <strong><?= lang()==='uz_cyrillic' ? "Хабарномалар" : "Xabarnomalar" ?></strong>
+              <?php if ($unread > 0): ?>
+                <a href="/api/?action=mark_all_read" onclick="markAllRead(event)" style="font-size:12px"><?= lang()==='uz_cyrillic' ? "Барчасини ўқиш" : "Hammasini o'qish" ?></a>
+              <?php endif; ?>
+            </div>
+            <div class="notif-list" id="notifList">
+              <div class="notif-loading">
+                <div class="skeleton" style="height:60px;border-radius:8px;margin-bottom:8px"></div>
+                <div class="skeleton" style="height:60px;border-radius:8px"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <a href="<?= $panel ?>" class="btn btn-outline btn-sm"><?= icon('user', 16) ?> <?= e($u['first_name']) ?></a>
       <?php else: ?>
         <a href="/login.php" class="btn btn-ghost btn-sm"><?= t('login') ?></a>
@@ -1483,6 +1550,83 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') {
     navigator.serviceWorker.register('/sw.js').catch(err => console.warn('SW reg failed', err));
   });
 }
+
+// =============== NOTIFICATIONS ===============
+let notifLoaded = false;
+window.toggleNotif = (e) => {
+  if (e) e.stopPropagation();
+  const wrap = document.getElementById('notifWrap');
+  if (!wrap) return;
+  wrap.classList.toggle('open');
+  if (wrap.classList.contains('open') && !notifLoaded) loadNotifications();
+};
+async function loadNotifications(){
+  const list = document.getElementById('notifList');
+  if (!list) return;
+  try {
+    const r = await fetch('/api/?action=notifications');
+    const data = await r.json();
+    if (data.ok && data.items) {
+      renderNotifications(data.items);
+      notifLoaded = true;
+    } else {
+      list.innerHTML = '<div class="notif-empty">Xabarnoma yo\u2019q</div>';
+    }
+  } catch (e) {
+    list.innerHTML = '<div class="notif-empty">Yuklashda xato</div>';
+  }
+}
+function renderNotifications(items){
+  const list = document.getElementById('notifList');
+  if (!items.length) {
+    list.innerHTML = '<div class="notif-empty">Xabarnoma yo\u2019q</div>';
+    return;
+  }
+  const colorMap = {success:'success',danger:'danger',warning:'warning',info:'info'};
+  const html = items.map(n => {
+    const time = formatRelativeTime(n.created_at);
+    const color = colorMap[n.color] || 'info';
+    const iconSvg = n.icon_svg || '';
+    return `<a href="${n.link || '#'}" class="notif-item ${n.is_read==0?'unread':''}" data-id="${n.id}" onclick="markRead(${n.id})">
+      <div class="notif-icon-wrap ${color}">${iconSvg}</div>
+      <div class="notif-body">
+        <div class="notif-title">${escapeHtml(n.title)}</div>
+        <div class="notif-msg">${escapeHtml(n.message || '')}</div>
+        <div class="notif-time">${time}</div>
+      </div>
+    </a>`;
+  }).join('');
+  list.innerHTML = html;
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+}
+function formatRelativeTime(ts){
+  const d = new Date(ts.replace(' ', 'T'));
+  const diff = (Date.now() - d.getTime()) / 1000;
+  if (diff < 60) return 'hozir';
+  if (diff < 3600) return Math.floor(diff/60) + ' daq oldin';
+  if (diff < 86400) return Math.floor(diff/3600) + ' soat oldin';
+  if (diff < 604800) return Math.floor(diff/86400) + ' kun oldin';
+  return d.toLocaleDateString('uz-UZ');
+}
+async function markRead(id){
+  try { await fetch('/api/?action=mark_read&id=' + id); } catch(e){}
+}
+async function markAllRead(e){
+  if (e) e.preventDefault();
+  try {
+    await fetch('/api/?action=mark_all_read');
+    document.querySelectorAll('.notif-item.unread').forEach(el => el.classList.remove('unread'));
+    document.querySelector('.notif-badge')?.remove();
+  } catch(e){}
+}
+// Tashqariga bosganda yopish
+document.addEventListener('click', e => {
+  if (!e.target.closest('.notif-wrap')) {
+    document.getElementById('notifWrap')?.classList.remove('open');
+  }
+});
 
 // Lazy loading polyfill (modern browsers ham support qiladi native loading="lazy")
 document.querySelectorAll('img:not([loading])').forEach(img => img.loading = 'lazy');

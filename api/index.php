@@ -202,8 +202,40 @@ switch ($action) {
             'status' => $db_ok ? 'ok' : 'degraded',
             'time'   => date('c'),
             'db'     => $db_ok ? 'connected' : 'disconnected',
-            'version' => '2.0.0',
+            'version' => '2.4.0',
         ]);
+
+    case 'notifications':
+        if (!is_logged_in()) api_error('Unauthorized', 401);
+        require_once __DIR__ . '/../includes/notifications.php';
+        $u = current_user();
+        $items = Notify::list((int)$u['id'], 20);
+        // Icon SVG'lar bilan
+        require_once __DIR__ . '/../includes/icons.php';
+        foreach ($items as &$n) {
+            $n['icon_svg'] = icon($n['icon'] ?: 'bell', 18);
+            $n['color']   = Notify::colorForType($n['type']);
+        }
+        unset($n);
+        api_response([
+            'items' => $items,
+            'unread' => Notify::unread((int)$u['id']),
+        ]);
+
+    case 'mark_read':
+        if (!is_logged_in()) api_error('Unauthorized', 401);
+        require_once __DIR__ . '/../includes/notifications.php';
+        $u = current_user();
+        $id = (int)($_GET['id'] ?? 0);
+        Notify::markRead((int)$u['id'], $id);
+        api_response(['marked' => true]);
+
+    case 'mark_all_read':
+        if (!is_logged_in()) api_error('Unauthorized', 401);
+        require_once __DIR__ . '/../includes/notifications.php';
+        $u = current_user();
+        Notify::markAllRead((int)$u['id']);
+        api_response(['marked' => true]);
 
     default:
         api_response([

@@ -20,6 +20,23 @@ function run_migrations(?PDO $pdo): array {
         // v2.3 — bilet uchun standart questions_count default
         ['set_default_questions',
          "ALTER TABLE `tickets` MODIFY `questions_count` INT NOT NULL DEFAULT 20"],
+
+        // v2.4 — notifications jadval
+        ['create_notifications', "
+            CREATE TABLE IF NOT EXISTS `notifications` (
+              `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+              `user_id` INT UNSIGNED NOT NULL,
+              `type` VARCHAR(50) NOT NULL DEFAULT 'info',
+              `title` VARCHAR(255) NOT NULL,
+              `message` TEXT,
+              `link` VARCHAR(255) DEFAULT NULL,
+              `icon` VARCHAR(20) DEFAULT NULL,
+              `is_read` TINYINT(1) DEFAULT 0,
+              `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              KEY `idx_user_read` (`user_id`, `is_read`),
+              KEY `idx_created` (`created_at`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        ],
     ];
 
     $results = ['ok' => 0, 'skipped' => 0, 'errors' => []];
@@ -66,9 +83,9 @@ function run_migrations(?PDO $pdo): array {
  * Avtomatik bir marta ishga tushirish (config.php dan chaqiriladi)
  */
 function maybe_auto_migrate(): void {
-    $lockFile = dirname(__DIR__) . '/.migrated_v2.3';
+    $lockFile = dirname(__DIR__) . '/.migrated_v2.4';
     if (is_file($lockFile)) return;
-    if (!is_file(dirname(__DIR__) . '/.installed')) return; // hali install qilinmagan
+    if (!is_file(dirname(__DIR__) . '/.installed')) return;
 
     try {
         require_once __DIR__ . '/database.php';
@@ -78,13 +95,10 @@ function maybe_auto_migrate(): void {
         $r = run_migrations($pdo);
         @file_put_contents($lockFile, json_encode([
             'migrated_at' => date('c'),
-            'version'     => '2.3.0',
+            'version'     => '2.4.0',
             'results'     => $r,
         ]));
 
-        // Settings cache'ni tozalash
         @unlink(dirname(__DIR__) . '/cache/data/settings.cache');
-    } catch (Throwable $e) {
-        // Silent fail
-    }
+    } catch (Throwable $e) {}
 }

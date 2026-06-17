@@ -13,20 +13,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $id = (int)($_POST['id'] ?? 0);
         if ($action === 'set_status' && $id) {
             $status = in_array($_POST['status'] ?? '', ['pending','approved','rejected','refunded']) ? $_POST['status'] : 'pending';
-            db()->execute("UPDATE payments SET status=? WHERE id=?", [$status, $id]);
+            $note   = Security::clean($_POST['note'] ?? '', 500);
+            $p_old  = db()->fetch("SELECT * FROM payments WHERE id=?", [$id]);
 
-            // Agar approved bo'lsa, foydalanuvchi tarifi yangilanadi
-            if ($status === 'approved') {
-                $p = db()->fetch("SELECT * FROM payments WHERE id=?", [$id]);
-                if ($p && $p['tariff_id']) {
-                    $tariff = db()->fetch("SELECT * FROM tariffs WHERE id=?", [$p['tariff_id']]);
-                    if ($tariff) {
-                        $expires = date('Y-m-d H:i:s', strtotime("+{$tariff['duration_days']} days"));
-                        db()->execute("UPDATE users SET tariff_id=?, tariff_expires_at=? WHERE id=?",
-                            [$p['tariff_id'], $expires, $p['user_id']]);
-                    }
+            db()->execute("UPDATE payments SET status=?, note=? WHERE id=?", [$status, $note ?: null, $id]);
+
+            if (!$p_old) { /* skip */ }
+            elseif ($status === 'approved' && $p_old['tariff_id']) {
+                $tariff = db()->fetch("SELECT * FROM tariffs WHERE id=?", [$p_old['tariff_id']]);
+                if ($tariff) {
+                    $expires = date('Y-m-d H:i:s', strtotime("+{$tariff['duration_days']} days"));
+                    db()->execute("UPDATE users SET tariff_id=?, tariff_expires_at=? WHERE id=?",
+                        [$p_old['tariff_id'], $expires, $p_old['user_id']]);
+
+                    // Notification — foydalanuvchiga
+                    Notify::send((int)$p_old['user_id'], 'payment_approved',
+                        lang()==='uz_cyrillic' ? "Тўлов тасдиқланди! 🎉" : "To'lov tasdiqlandi! 🎉",
+                        ($tariff['name_latin']) . " tarifingiz faollashtirildi (" . $tariff['duration_days'] . " kun)",
+                        ['link' => '/user/tariflar.php', 'icon' => 'check-circle', 'telegram' => true]);
                 }
             }
+            elseif ($status === 'rejected') {
+                Notify::send((int)$p_old['user_id'], 'payment_rejected',
+                    lang()==='uz_cyrillic' ? "Тўлов рад этилди" : "To'lov rad etildi",
+                    $note ?: (lang()==='uz_cyrillic' ? "Илтимос, қайта уриниб кўринг" : "Iltimos, qayta urinib ko'ring"),
+                    ['link' => '/user/tariflar.php', 'icon' => 'x-circle', 'telegram' => true]);
+            }
+
             audit('payment_status_changed', "Payment #$id → $status");
             $msg = t('updated_success');
         }

@@ -4,6 +4,7 @@
  */
 require_once __DIR__ . '/functions.php';
 require_once __DIR__ . '/security.php';
+require_once __DIR__ . '/notifications.php';
 
 class Auth {
 
@@ -132,6 +133,13 @@ class Auth {
         $_SESSION['user_role'] = 'user';
 
         audit('register', "Yangi foydalanuvchi ro'yxatdan o'tdi", 'info', $id);
+
+        // Welcome notification
+        Notify::send($id, 'welcome',
+            "👋 Xush kelibsiz, $first!",
+            "VatanParvar Yaypan platformasiga muvaffaqiyatli qo'shildingiz. Birinchi testingizni boshlang!",
+            ['link' => '/user/testlar.php', 'icon' => 'star']);
+
         return ['ok' => true, 'redirect' => '/user/'];
     }
 
