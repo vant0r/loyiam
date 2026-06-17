@@ -1239,6 +1239,8 @@ img[loading="lazy"][data-loading]{opacity:0}
    ENHANCED RESPONSIVENESS
    ============================================================ */
 
+/* ============== ENHANCED RESPONSIVENESS — STABLE (no big transforms) ============== */
+
 /* Smoother mobile hero */
 @media(max-width:480px){
   .hero h1{animation-duration:.8s}
@@ -1250,6 +1252,35 @@ img[loading="lazy"][data-loading]{opacity:0}
 @media (hover:none){
   .card-hover:hover, .pricing-card:hover, .stat-card:hover{transform:none}
   .btn-primary:hover{transform:none}
+  .lift:hover{transform:none}
+  .pricing-v2:hover, .pricing-v2.is-popular:hover{transform:none}
+  .feature-card:hover{transform:none}
+  .blog-card-v2:hover{transform:none}
+  .step-item:hover .step-bubble{transform:none}
+  .testimonial-card:hover{transform:none}
+}
+
+/* Disable scale-up on small screens for stability */
+@media (max-width:768px){
+  .pricing-card.popular{transform:none !important}
+  .pricing-v2.is-popular{transform:none !important}
+  .card-hover:hover, .stat-card:hover, .pricing-card:hover, .pricing-v2:hover,
+  .feature-card:hover, .blog-card-v2:hover, .testimonial-card:hover{
+    transform:translateY(-2px) !important
+  }
+  .lift:hover{transform:translateY(-2px) !important}
+  /* Disable scale-based animations on mobile */
+  .step-item:hover .step-bubble{transform:scale(1.03) !important}
+  .feature-card:hover .feature-icon-wrap{transform:none}
+  .floating-card{display:none}
+}
+
+/* Prevent layout shift — explicit min-height for cards */
+.pricing-v2,.pricing-card,.feature-card{min-height:200px}
+
+/* Stable button hovers — only color/shadow, not transform */
+.btn-primary:hover,.btn-cta-primary:hover{
+  filter:brightness(1.05)
 }
 
 /* Disable will-change on slow devices */
@@ -1517,19 +1548,22 @@ const observer = new IntersectionObserver(entries => {
 }, {threshold:.2});
 document.querySelectorAll('[data-count]').forEach(el => observer.observe(el));
 
-// Form button loading state
+// Form button loading state — defer disable to NOT block submission
 document.addEventListener('submit', e => {
   const form = e.target;
   if (form.tagName !== 'FORM' || form.dataset.noLoading) return;
-  const btn = form.querySelector('button[type="submit"]:not([data-no-loading])');
-  if (btn && !btn.classList.contains('btn-loading')) {
-    btn.classList.add('btn-loading');
-    btn.disabled = true;
-    // Avto-restore agar form 15 soniyada javob qaytarmasa
+  const btn = e.submitter || form.querySelector('button[type="submit"]:not([data-no-loading])');
+  if (btn && !btn.classList.contains('btn-loading') && !btn.disabled) {
+    // Defer to next tick — form already submits with button enabled
+    setTimeout(() => {
+      btn.classList.add('btn-loading');
+      btn.disabled = true;
+    }, 0);
+    // Avto-restore agar form 20 soniyada javob qaytarmasa
     setTimeout(() => {
       btn.classList.remove('btn-loading');
       btn.disabled = false;
-    }, 15000);
+    }, 20000);
   }
 });
 

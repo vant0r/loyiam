@@ -3,11 +3,14 @@ require_once __DIR__ . '/../includes/auth.php';
 require_admin();
 
 $lang_field = lang() === 'uz_cyrillic' ? 'cyrillic' : 'latin';
-$msg = '';
+$msg = ''; $err = '';
 $default_image = setting('default_question_image', '/assets/images/default-question.svg');
 
 // Action handlers
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrf_check()) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!csrf_check()) {
+        $err = t('csrf_invalid');
+    } else {
     $action = $_POST['action'] ?? '';
     $id = (int)($_POST['id'] ?? 0);
 
@@ -68,6 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrf_check()) {
         }
         $msg = $action === 'add' ? t('saved_success') : t('updated_success');
     }
+    } // end csrf else
 }
 
 // CSV import
@@ -133,6 +137,7 @@ render_head(t('questions'));
   </div>
 
   <?php if ($msg): ?><div class="alert alert-success"><?= icon('check-circle',18) ?> <?= e($msg) ?></div><?php endif; ?>
+  <?php if (!empty($err)): ?><div class="alert alert-danger"><?= icon('x-circle',18) ?> <?= e($err) ?></div><?php endif; ?>
 
   <!-- Filter -->
   <form method="get" class="card mb-3" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end">

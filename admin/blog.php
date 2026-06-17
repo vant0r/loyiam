@@ -2,8 +2,11 @@
 require_once __DIR__ . '/../includes/auth.php';
 require_admin();
 
-$msg = '';
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrf_check()) {
+$msg = ''; $err = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!csrf_check()) {
+        $err = t('csrf_invalid');
+    } else {
     $action = $_POST['action'] ?? '';
     $id = (int)($_POST['id'] ?? 0);
 
@@ -60,6 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrf_check()) {
             $msg = t('updated_success');
         }
     }
+    } // end csrf else
 }
 
 $search = trim($_GET['q'] ?? '');
@@ -85,6 +89,7 @@ render_head(t('blog'));
   </div>
 
   <?php if ($msg): ?><div class="alert alert-success"><?= e($msg) ?></div><?php endif; ?>
+  <?php if (!empty($err)): ?><div class="alert alert-danger"><?= icon('x-circle', 18) ?> <?= e($err) ?></div><?php endif; ?>
 
   <!-- Search -->
   <form method="get" class="card mb-3" style="display:flex;gap:12px;align-items:end">
