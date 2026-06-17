@@ -26,7 +26,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $r = Auth::create_reset_code($login);
                     if ($r['ok']) {
                         $success = $r['msg'];
-                        $demoCode = $r['code']; // Demo uchun ko'rsatamiz
+                        // Debug code faqat APP_DEBUG=1 bo'lganda mavjud
+                        if (defined('APP_DEBUG') && APP_DEBUG && !empty($r['debug_code'])) {
+                            $demoCode = $r['debug_code'];
+                        }
                         $step = 2;
                     } else {
                         $error = $r['msg'];
@@ -104,9 +107,9 @@ render_head(t('forgot_password'));
     <?php endif; ?>
 
     <?php if ($demoCode): ?>
-      <div class="alert alert-info" style="font-size:13px">
-        <?= icon('help', 18) ?>
-        <span><strong>Demo rejimi:</strong> Sizning kodingiz: <code style="font-size:16px;font-weight:700;color:var(--primary)"><?= e($demoCode) ?></code></span>
+      <div class="alert alert-warning" style="font-size:13px">
+        <?= icon('flame', 18) ?>
+        <span><strong>Debug rejimi (APP_DEBUG=1):</strong> Sizning kodingiz: <code style="font-size:16px;font-weight:700;color:var(--primary)"><?= e($demoCode) ?></code><br><small>Production'da bu xabar ko'rinmaydi.</small></span>
       </div>
     <?php endif; ?>
 

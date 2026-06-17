@@ -9,14 +9,24 @@
  *   wget -q -O - https://your-domain.uz/cron/daily.php?secret=YOUR_SECRET
  */
 
-// CLI tekshiruv yoki secret URL parameter
+// CLI tekshiruv yoki secret URL parameter (timing-safe compare)
 $is_cli = php_sapi_name() === 'cli';
-$cron_secret = 'CHANGE_ME_TO_A_RANDOM_SECRET_STRING';
+// Secret'ni .env'dan o'qish tavsiya etiladi
+$cron_secret = $_ENV['CRON_SECRET'] ?? 'CHANGE_ME_TO_A_RANDOM_SECRET_STRING';
 
 if (!$is_cli) {
-    if (($_GET['secret'] ?? '') !== $cron_secret) {
+    $given = (string)($_GET['secret'] ?? '');
+    // Production'da default secret bo'lmasin
+    if ($cron_secret === 'CHANGE_ME_TO_A_RANDOM_SECRET_STRING') {
         http_response_code(403);
-        echo "Forbidden — wrong secret";
+        echo "Forbidden — set CRON_SECRET in .env";
+        exit;
+    }
+    if (strlen($given) !== strlen($cron_secret) || !hash_equals($cron_secret, $given)) {
+        http_response_code(403);
+        // Audit log
+        @error_log("[cron/daily.php] BLOCKED: wrong secret from " . ($_SERVER['REMOTE_ADDR'] ?? '?'));
+        echo "Forbidden";
         exit;
     }
     header('Content-Type: text/plain; charset=utf-8');

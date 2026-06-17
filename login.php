@@ -136,9 +136,11 @@ render_head($mode === 'register' ? t('register') : t('login'));
             <a href="#" onclick="event.preventDefault();toggleAuth()"><?= t('register') ?></a>
           </div>
 
+          <?php if (defined('APP_DEBUG') && APP_DEBUG): ?>
           <div class="auth-demo">
-            <strong>Demo:</strong> admin@vatanparvar.uz / admin123
+            <strong>Debug rejimi:</strong> Bu xabar faqat APP_DEBUG=1 bo'lganda ko'rinadi
           </div>
+          <?php endif; ?>
         </div>
       </div>
 

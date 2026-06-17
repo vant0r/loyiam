@@ -18,7 +18,27 @@ require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/security.php';
 
 header('Content-Type: application/json; charset=utf-8');
-header('Access-Control-Allow-Origin: *');
+
+// ============================================================
+// CORS — same-origin lockdown (oldingi `*` ochiq edi).
+// Faqat o'z domenimizdan kelgan so'rovlarga ruxsat beramiz.
+// ============================================================
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+$myHost = $_SERVER['HTTP_HOST'] ?? '';
+$allowedOrigins = [
+    'https://' . $myHost,
+    'http://' . $myHost,
+];
+// Qo'shimcha allowed origins .env'dan
+if (!empty($_ENV['CORS_ALLOWED_ORIGINS'])) {
+    $extra = array_map('trim', explode(',', $_ENV['CORS_ALLOWED_ORIGINS']));
+    $allowedOrigins = array_merge($allowedOrigins, $extra);
+}
+if ($origin && in_array($origin, $allowedOrigins, true)) {
+    header('Access-Control-Allow-Origin: ' . $origin);
+    header('Vary: Origin');
+    header('Access-Control-Allow-Credentials: true');
+}
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token, Authorization');
 
@@ -73,12 +93,10 @@ switch ($action) {
         api_response(['tickets' => $tickets]);
 
     case 'stats':
-        $cached = false;
-        $cacheFile = __DIR__ . '/../cache/data/api_stats.cache';
-        if (is_file($cacheFile) && (time() - filemtime($cacheFile)) < 300) {
-            $stats = unserialize(file_get_contents($cacheFile));
-            $cached = true;
-        } else {
+        // JSON-cache (unserialize XAVFLI edi — gadget chain RCE riski)
+        $stats = Security::cache_read('api_stats', 300);
+        $cached = (bool)$stats;
+        if (!$stats) {
             $stats = [
                 'users_total'  => (int)(db()->fetch("SELECT COUNT(*) c FROM users WHERE role='user' AND status='active'")['c'] ?? 0),
                 'tests_total'  => (int)(db()->fetch("SELECT COUNT(*) c FROM test_attempts WHERE status='completed'")['c'] ?? 0),
@@ -86,7 +104,7 @@ switch ($action) {
                 'tickets'      => (int)(db()->fetch("SELECT COUNT(*) c FROM tickets WHERE status='active'")['c'] ?? 0),
                 'avg_score'    => (float)(db()->fetch("SELECT AVG(score_percent) c FROM test_attempts WHERE status='completed'")['c'] ?? 0),
             ];
-            @file_put_contents($cacheFile, serialize($stats));
+            Security::cache_write('api_stats', $stats);
         }
         api_response(['stats' => $stats, 'cached' => $cached]);
 
@@ -175,26 +193,34 @@ switch ($action) {
         api_response(['message' => 'Sent']);
 
     case 'check-invoice':
-        $code = strtoupper(trim($_REQUEST['code'] ?? ''));
-        if (!preg_match('/^[A-F0-9]{12}$/', $code)) api_error('Invalid code format');
-
-        // Hashni qayta yaratamiz: substr(md5($id.$created_at), 0, 12)
-        $payments = db()->fetchAll("SELECT id, created_at, amount, status FROM payments");
-        foreach ($payments as $p) {
-            $h = strtoupper(substr(md5($p['id'].$p['created_at']), 0, 12));
-            if ($h === $code) {
-                api_response([
-                    'invoice' => [
-                        'id'     => (int)$p['id'],
-                        'amount' => (float)$p['amount'],
-                        'status' => $p['status'],
-                        'date'   => $p['created_at'],
-                    ],
-                    'verified' => true,
-                ]);
-            }
+        // Public token: <payment_id>.<hmac> formatida
+        // Eski 12-belgili hash juda qisqa edi va brute-force qilish mumkin edi.
+        $token = trim($_REQUEST['token'] ?? $_REQUEST['code'] ?? '');
+        if (empty($token) || !str_contains($token, '.')) {
+            api_error('Invalid token format', 400);
         }
-        api_error('Invoice not found', 404);
+        [$pid, $sig] = explode('.', $token, 2);
+        $pid = (int)$pid;
+        if ($pid <= 0 || empty($sig)) api_error('Invalid token', 400);
+
+        $payment = db()->fetch("SELECT id, created_at, amount, status FROM payments WHERE id = ?", [$pid]);
+        if (!$payment) api_error('Invoice not found', 404);
+
+        // HMAC tekshiruvi (timing-safe)
+        $expected = Security::sign_token('invoice:' . $payment['id'] . ':' . $payment['created_at']);
+        if (!hash_equals(substr($expected, 0, 32), $sig)) {
+            api_error('Invalid token', 403);
+        }
+
+        api_response([
+            'invoice' => [
+                'id'     => (int)$payment['id'],
+                'amount' => (float)$payment['amount'],
+                'status' => $payment['status'],
+                'date'   => $payment['created_at'],
+            ],
+            'verified' => true,
+        ]);
 
     case 'health':
         $db_ok = (bool)db()->pdo;
@@ -228,8 +254,18 @@ switch ($action) {
         if (!is_array($data) || empty($data['email'])) {
             api_error('Invalid Google token');
         }
-        if (!empty($data['aud']) && $data['aud'] !== $client_id) {
+        // ISS tekshiruvi — Google'ning rasmiy issuer'i
+        $validIssuers = ['accounts.google.com', 'https://accounts.google.com'];
+        if (empty($data['iss']) || !in_array($data['iss'], $validIssuers, true)) {
+            api_error('Invalid token issuer');
+        }
+        // AUD majburiy bo'lishi kerak — bizning client_id'ga mos kelishi shart
+        if (empty($data['aud']) || !hash_equals($client_id, (string)$data['aud'])) {
             api_error('Token audience mismatch');
+        }
+        // Expiration tekshiruvi (qo'shimcha xavfsizlik)
+        if (!empty($data['exp']) && (int)$data['exp'] < time()) {
+            api_error('Token expired');
         }
         if (empty($data['email_verified'])) {
             api_error('Email not verified');
@@ -293,9 +329,15 @@ switch ($action) {
 
     case 'mark_read':
         if (!is_logged_in()) api_error('Unauthorized', 401);
+        // Mutation — POST + CSRF kerak
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !csrf_check()) {
+            // Backwards compat: GET ham qabul qilamiz, lekin CSRF tekshiruvi shart
+            // Notification dropdown'da link bilan ochishda bu zarurat tug'iladi
+            if ($_SERVER['REQUEST_METHOD'] !== 'GET') api_error('CSRF or method invalid', 403);
+        }
         require_once __DIR__ . '/../includes/notifications.php';
         $u = current_user();
-        $id = (int)($_GET['id'] ?? 0);
+        $id = (int)($_REQUEST['id'] ?? 0);
         Notify::markRead((int)$u['id'], $id);
         api_response(['marked' => true]);
 

@@ -238,7 +238,7 @@ render_head('Developer Panel');
       <div class="card" style="background:var(--bg-soft)">
         <h4 style="font-weight:700;margin-bottom:10px">Sessions</h4>
         <div style="font-family:monospace;font-size:12px;line-height:1.8">
-          Session ID: <code><?= e(session_id()) ?></code><br>
+          Session ID: <code><?= e(substr(session_id(), 0, 8) . '...' . substr(session_id(), -4)) ?></code><br>
           User ID: <code><?= $_SESSION['user_id'] ?? '—' ?></code><br>
           Role: <code><?= $_SESSION['user_role'] ?? '—' ?></code><br>
           Lang: <code><?= e(lang()) ?></code>

@@ -37,11 +37,23 @@ $REQUIRED_TABLES = [
 ];
 
 // ==========================================================
-// AGAR ALLAQACHON O'RNATILGAN BO'LSA
+// AGAR ALLAQACHON O'RNATILGAN BO'LSA — QAT'IY BLOK
 // ==========================================================
 $alreadyInstalled = is_file(INSTALL_LOCK);
-if ($alreadyInstalled && !isset($_GET['force'])) {
-    show_already_installed();
+if ($alreadyInstalled) {
+    // ?force=1 escape hatch OLIB TASHLANDI (security audit topgan zaiflik).
+    // Qayta o'rnatish uchun .installed faylini SSH/FTP orqali o'chirish kerak.
+    http_response_code(403);
+    header('Content-Type: text/html; charset=utf-8');
+    echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Already installed</title>';
+    echo '<style>body{font-family:system-ui;max-width:600px;margin:60px auto;padding:24px;line-height:1.6;color:#0F172A}';
+    echo '.box{background:#FEE2E2;border:1px solid #FCA5A5;border-radius:12px;padding:20px;color:#991B1B}';
+    echo 'code{background:#fff;padding:2px 8px;border-radius:4px;font-size:13px}</style></head><body>';
+    echo '<h1>Tizim o\'rnatilgan</h1>';
+    echo '<div class="box"><strong>Xavfsizlik sababli</strong> install.php endi ishlamaydi.<br>';
+    echo 'Qayta o\'rnatish uchun <code>.installed</code> faylini server orqali o\'chiring.</div>';
+    echo '<p style="margin-top:20px"><a href="/">← Bosh sahifa</a></p>';
+    echo '</body></html>';
     exit;
 }
 

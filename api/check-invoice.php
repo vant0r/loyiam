@@ -1,29 +1,54 @@
 <?php
 /**
- * Chek tasdiqlash sahifasi (URL'da hash bilan)
+ * Chek tasdiqlash sahifasi — signed token bilan
+ *
+ * URL formati: /api/check-invoice.php?token=<payment_id>.<hmac>
+ *   - oldingi 12-belgili md5 hash juda qisqa edi (brute-force imkoni)
+ *   - va loop bilan barcha to'lovlarni o'qiyotgan edi (DoS riski)
+ *   - endi indexed lookup + HMAC-SHA256 tekshirish
  */
 require_once __DIR__ . '/../includes/functions.php';
+require_once __DIR__ . '/../includes/security.php';
 
-$code = strtoupper(trim($_GET['code'] ?? ''));
-
-render_head('Chek tekshirish');
-render_header();
-
-if (!preg_match('/^[A-F0-9]{12}$/', $code)) {
-    echo '<div class="container section text-center"><h1>Noto\'g\'ri kod</h1><p>Tasdiqlash kodi 12 ta belgidan iborat bo\'lishi kerak.</p><a href="/" class="btn btn-primary">Bosh sahifa</a></div>';
+// Public endpoint — rate limit
+$rl = Security::rate_limit('checkinv_' . Security::client_ip(), 30, 600);
+if (!$rl['allowed']) {
+    http_response_code(429);
+    render_head('Juda ko\'p so\'rov');
+    render_header();
+    echo '<div class="container section text-center" style="padding:80px 20px"><h1>429 — Juda ko\'p so\'rov</h1><p>Iltimos, biroz kutib turing.</p></div>';
     render_footer();
     exit;
 }
 
-// Hashni qidiramiz
+$token = trim($_GET['token'] ?? $_GET['code'] ?? '');
+
+render_head('Chek tekshirish');
+render_header();
+
+// Token format tekshiruvi
 $invoice = null;
-$payments = db()->fetchAll("SELECT p.*, u.first_name, u.last_name, t.name_latin tname
-                            FROM payments p
-                            LEFT JOIN users u ON p.user_id = u.id
-                            LEFT JOIN tariffs t ON p.tariff_id = t.id");
-foreach ($payments as $p) {
-    $h = strtoupper(substr(md5($p['id'].$p['created_at']), 0, 12));
-    if ($h === $code) { $invoice = $p; break; }
+$pid = 0;
+if ($token && str_contains($token, '.')) {
+    [$pidStr, $sig] = explode('.', $token, 2);
+    $pid = (int)$pidStr;
+    if ($pid > 0 && preg_match('/^[a-f0-9]{32}$/', $sig)) {
+        $payment = db()->fetch(
+            "SELECT p.*, u.first_name, u.last_name, t.name_latin tname
+             FROM payments p
+             LEFT JOIN users u ON p.user_id = u.id
+             LEFT JOIN tariffs t ON p.tariff_id = t.id
+             WHERE p.id = ? LIMIT 1",
+            [$pid]
+        );
+        if ($payment) {
+            // HMAC tekshiruvi (timing-safe)
+            $expected = Security::sign_token('invoice:' . $payment['id'] . ':' . $payment['created_at']);
+            if (hash_equals(substr($expected, 0, 32), $sig)) {
+                $invoice = $payment;
+            }
+        }
+    }
 }
 ?>
 
@@ -33,8 +58,7 @@ foreach ($payments as $p) {
       <div class="card text-center" style="padding:60px 30px">
         <?= icon('x-circle', 64) ?>
         <h2 style="margin-top:14px;color:var(--danger-dark)">Chek topilmadi</h2>
-        <p class="text-soft">Tasdiqlash kodi noto'g'ri yoki chek o'chirilgan.</p>
-        <code style="background:var(--bg-mute);padding:6px 12px;border-radius:6px;margin-top:14px;display:inline-block"><?= e($code) ?></code>
+        <p class="text-soft">Tasdiqlash havolasi noto'g'ri yoki chek o'chirilgan.</p>
         <div class="mt-3"><a href="/" class="btn btn-primary">Bosh sahifa</a></div>
       </div>
     <?php else: ?>
@@ -42,8 +66,8 @@ foreach ($payments as $p) {
         <div style="background:linear-gradient(135deg,
           <?= $invoice['status']==='approved' ? 'var(--success),#059669' : ($invoice['status']==='rejected' ? 'var(--danger),#DC2626' : 'var(--warning),#D97706') ?>);
           color:#fff;padding:32px;text-align:center">
-          <div style="font-size:64px;margin-bottom:8px">
-            <?= $invoice['status']==='approved' ? '✓' : ($invoice['status']==='rejected' ? '✕' : '⏳') ?>
+          <div style="margin-bottom:8px">
+            <?= icon($invoice['status']==='approved' ? 'check-circle' : ($invoice['status']==='rejected' ? 'x-circle' : 'clock'), 64) ?>
           </div>
           <h2 style="color:#fff">Chek <?= $invoice['status']==='approved' ? 'tasdiqlangan' : ($invoice['status']==='rejected' ? 'rad etilgan' : 'kutilmoqda') ?></h2>
           <p style="opacity:.9">#<?= str_pad((string)$invoice['id'], 6, '0', STR_PAD_LEFT) ?></p>
@@ -54,7 +78,7 @@ foreach ($payments as $p) {
             <tr><td class="text-soft" style="padding:8px 0">Tarif:</td><td><strong><?= e($invoice['tname']) ?></strong></td></tr>
             <tr><td class="text-soft" style="padding:8px 0">Summa:</td><td><strong><?= money($invoice['amount']) ?> <?= t('soum') ?></strong></td></tr>
             <tr><td class="text-soft" style="padding:8px 0">Sana:</td><td><?= date('d.m.Y H:i', strtotime($invoice['created_at'])) ?></td></tr>
-            <tr><td class="text-soft" style="padding:8px 0">Usul:</td><td><?= strtoupper($invoice['method']) ?></td></tr>
+            <tr><td class="text-soft" style="padding:8px 0">Usul:</td><td><?= strtoupper(e($invoice['method'])) ?></td></tr>
           </table>
           <div class="alert alert-success mt-3" style="font-size:13px">
             <?= icon('shield', 18) ?>

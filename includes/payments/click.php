@@ -128,10 +128,20 @@ class ClickPayment {
         ];
     }
 
-    /** MD5 imzosini tekshirish */
+    /** MD5 imzosini tekshirish (timing-safe + replay protection) */
     private static function verify_sign(array $d, int $action): bool {
         $secret = setting('click_secret_key', '');
-        if (!$secret) return false; // Production'da Click secret bo'lishi shart
+        if (!$secret) return false;
+
+        // Replay protection: sign_time 30 daqiqadan eski bo'lmasligi kerak
+        $signTime = $d['sign_time'] ?? '';
+        if ($signTime) {
+            // Click sign_time formatlari farqlanadi — sanaga aylantirib taqqoslaymiz
+            $ts = strtotime(str_replace('-', '', substr($signTime, 0, 14)));
+            if ($ts !== false && abs(time() - $ts) > 1800) {
+                return false;
+            }
+        }
 
         if ($action === self::ACTION_PREPARE) {
             $str = ($d['click_trans_id'] ?? '')
@@ -151,7 +161,13 @@ class ClickPayment {
                  . ($d['action'] ?? '')
                  . ($d['sign_time'] ?? '');
         }
-        return md5($str) === ($d['sign_string'] ?? '');
+
+        $expected = md5($str);
+        $given    = (string)($d['sign_string'] ?? '');
+        if (strlen($expected) !== strlen($given)) return false;
+
+        // Timing-safe compare
+        return hash_equals($expected, $given);
     }
 
     private static function error(int $code, string $note): array {

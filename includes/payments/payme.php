@@ -71,7 +71,10 @@ class PaymePayment {
         $key = setting('payme_secret_key', '');
         if (!$key) return false;
         $expected = 'Basic ' . base64_encode("Paycom:$key");
-        return ($_SERVER['HTTP_AUTHORIZATION'] ?? '') === $expected;
+        $given = (string)($_SERVER['HTTP_AUTHORIZATION'] ?? '');
+        if (strlen($expected) !== strlen($given)) return false;
+        // Timing-safe compare (oldingi `===` timing leak edi)
+        return hash_equals($expected, $given);
     }
 
     /** account.order_id orqali payment topish */

@@ -6,6 +6,8 @@
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/database.php';
 require_once __DIR__ . '/icons.php';
+require_once __DIR__ . '/security.php';
+require_once __DIR__ . '/scrape_guard.php';
 
 // =========================================================
 // TARJIMALAR
@@ -70,24 +72,31 @@ function uz_latin_to_cyrillic(string $text): string {
 function setting(string $key, $default = '') {
     static $cache = null;
     if ($cache === null) {
-        // Try Cache layer first
-        $cacheFile = __DIR__ . '/../cache/data/settings.cache';
+        // JSON cache (unserialize XAVFLI edi — POI/RCE riski)
+        $cacheFile = __DIR__ . '/../cache/data/settings.json';
         if (is_file($cacheFile) && (time() - filemtime($cacheFile)) < 600) {
-            $cache = @unserialize(@file_get_contents($cacheFile));
+            $raw = @file_get_contents($cacheFile);
+            $decoded = $raw ? json_decode($raw, true) : null;
+            if (is_array($decoded)) $cache = $decoded;
         }
         if (!is_array($cache)) {
             $cache = [];
-            $rows = db()->fetchAll("SELECT setting_key, setting_value FROM settings");
-            foreach ($rows as $r) $cache[$r['setting_key']] = $r['setting_value'];
-            // Persist
+            try {
+                $rows = db()->fetchAll("SELECT setting_key, setting_value FROM settings");
+                foreach ($rows as $r) $cache[$r['setting_key']] = $r['setting_value'];
+            } catch (\Throwable $e) {
+                // DB hali tayyor emas (install) — bo'sh array
+            }
             @mkdir(dirname($cacheFile), 0755, true);
-            @file_put_contents($cacheFile, serialize($cache));
+            @file_put_contents($cacheFile, json_encode($cache, JSON_UNESCAPED_UNICODE), LOCK_EX);
         }
     }
     return $cache[$key] ?? $default;
 }
 
 function flush_settings_cache(): void {
+    @unlink(__DIR__ . '/../cache/data/settings.json');
+    // Eski .cache ham bo'lsa o'chirib yuboramiz
     @unlink(__DIR__ . '/../cache/data/settings.cache');
 }
 
@@ -776,6 +785,10 @@ document.querySelectorAll('img[loading="lazy"]').forEach(img => {
   }, {once:true});
 });
 </script>
+<?php
+// Anti-scraping JS himoya (ScrapeGuard tomonidan)
+echo ScrapeGuard::js_protection();
+?>
 <?php
 }
 

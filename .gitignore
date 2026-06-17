@@ -25,3 +25,8 @@
 /includes/config.local.php
 .env
 .env.local
+cache/data/
+cache/ratelimit/
+cache/*.json
+cache/php-error.log
+.installed
