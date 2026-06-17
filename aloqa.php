@@ -1,25 +1,39 @@
 <?php
 require_once __DIR__ . '/includes/functions.php';
+require_once __DIR__ . '/includes/security.php';
 
 $success = false; $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $name    = trim($_POST['name'] ?? '');
-    $email   = trim($_POST['email'] ?? '');
-    $phone   = trim($_POST['phone'] ?? '');
-    $message = trim($_POST['message'] ?? '');
-
-    if (!$name || !$message) {
-        $error = lang()==='uz_cyrillic' ? "Исм ва хабар майдонлари тўлдирилиши шарт" : "Ism va xabar maydonlari to'ldirilishi shart";
+    if (!csrf_check()) {
+        $error = t('csrf_invalid');
     } else {
-        $ok = db()->execute(
-            "INSERT INTO contact_messages (name,email,phone,message) VALUES (?,?,?,?)",
-            [$name, $email ?: null, $phone ?: null, $message]
-        );
-        if ($ok) {
-            $success = true;
+        // Rate limit (10 ta xabar / soat)
+        $rl = Security::rate_limit('contact_' . client_ip(), 10, 3600);
+        if (!$rl['allowed']) {
+            $error = t('too_many_attempts');
         } else {
-            $error = lang()==='uz_cyrillic' ? "Хабар юборишда хатолик" : "Xabar yuborishda xatolik";
+            $name    = Security::clean($_POST['name'] ?? '', 150);
+            $email   = Security::clean($_POST['email'] ?? '', 150);
+            $phone   = Security::clean($_POST['phone'] ?? '', 30);
+            $message = Security::clean($_POST['message'] ?? '', 2000);
+
+            if (!$name || !$message) {
+                $error = t('message_required');
+            } elseif ($email && !Security::valid_email($email)) {
+                $error = t('invalid_email');
+            } else {
+                $ok = db()->execute(
+                    "INSERT INTO contact_messages (name,email,phone,message) VALUES (?,?,?,?)",
+                    [$name, $email ?: null, $phone ?: null, $message]
+                );
+                if ($ok) {
+                    $success = true;
+                    audit('contact_form', "From: $name <$email>", 'info');
+                } else {
+                    $error = lang()==='uz_cyrillic' ? "Хабар юборишда хатолик" : "Xabar yuborishda xatolik";
+                }
+            }
         }
     }
 }
@@ -84,6 +98,7 @@ render_header('contact');
           <?php endif; ?>
 
           <form method="post">
+      <?= csrf_field() ?>
             <div class="form-group">
               <label class="form-label"><?= t('name') ?> *</label>
               <input type="text" name="name" class="form-control" required>

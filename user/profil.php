@@ -1,61 +1,66 @@
 <?php
-require_once __DIR__ . '/../includes/functions.php';
+require_once __DIR__ . '/../includes/auth.php';
 require_login();
 
 $u = current_user();
 $msg = ''; $err = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action = $_POST['action'] ?? '';
+    if (!csrf_check()) {
+        $err = t('csrf_invalid');
+    } else {
+        $action = $_POST['action'] ?? '';
 
-    // Profilni yangilash
-    if ($action === 'profile') {
-        $first = trim($_POST['first_name'] ?? '');
-        $last  = trim($_POST['last_name']  ?? '');
-        $email = trim($_POST['email']      ?? '');
-        $phone = trim($_POST['phone']      ?? '');
-        $lang  = $_POST['language']        ?? 'uz_latin';
+        // Profilni yangilash
+        if ($action === 'profile') {
+            $first = Security::clean($_POST['first_name'] ?? '', 50);
+            $last  = Security::clean($_POST['last_name']  ?? '', 50);
+            $email = Security::clean($_POST['email']      ?? '', 100);
+            $phone = Security::clean($_POST['phone']      ?? '', 20);
+            $lang  = in_array($_POST['language'] ?? '', ['uz_latin','uz_cyrillic']) ? $_POST['language'] : 'uz_latin';
 
-        // Avatar
-        $avatar = $u['avatar'];
-        if (!empty($_FILES['avatar']['name'])) {
-            $ext = strtolower(pathinfo($_FILES['avatar']['name'], PATHINFO_EXTENSION));
-            if (in_array($ext, ['jpg','jpeg','png','gif','webp'])) {
-                $name = 'avatar_' . $u['id'] . '_' . time() . '.' . $ext;
-                if (@move_uploaded_file($_FILES['avatar']['tmp_name'], UPLOAD_PATH . '/' . $name)) {
-                    $avatar = UPLOAD_URL . '/' . $name;
+            // Avatar — Security::upload_image bilan
+            $avatar = $u['avatar'];
+            if (!empty($_FILES['avatar']['name'])) {
+                $up = Security::upload_image($_FILES['avatar'], 'avatar_' . $u['id']);
+                if ($up['ok']) {
+                    $avatar = $up['url'];
+                    @chmod(BASE_PATH . $up['url'], 0644);
+                } else {
+                    $err = $up['error'];
+                }
+            }
+
+            if (!$err) {
+                if ($email && !Security::valid_email($email)) {
+                    $err = t('invalid_email');
+                } elseif ($phone && !Security::valid_phone($phone)) {
+                    $err = t('invalid_phone');
+                } else {
+                    $ok = db()->execute(
+                        "UPDATE users SET first_name=?, last_name=?, email=?, phone=?, language=?, avatar=? WHERE id=?",
+                        [$first, $last, $email ?: null, $phone ?: null, $lang, $avatar, $u['id']]
+                    );
+                    if ($ok) {
+                        $_SESSION['lang'] = $lang;
+                        $msg = t('saved_success');
+                        $u = db()->fetch("SELECT * FROM users WHERE id=?", [$u['id']]);
+                    } else {
+                        $err = t('error');
+                    }
                 }
             }
         }
 
-        $ok = db()->execute(
-            "UPDATE users SET first_name=?, last_name=?, email=?, phone=?, language=?, avatar=? WHERE id=?",
-            [$first, $last, $email ?: null, $phone ?: null, $lang, $avatar, $u['id']]
-        );
-        if ($ok) {
-            $_SESSION['lang'] = $lang;
-            $msg = lang()==='uz_cyrillic' ? 'Маълумотлар сақланди' : 'Ma\'lumotlar saqlandi';
-            $u = db()->fetch("SELECT * FROM users WHERE id=?", [$u['id']]);
-        } else {
-            $err = 'Xatolik';
-        }
-    }
+        // Parolni o'zgartirish
+        if ($action === 'password') {
+            $old = $_POST['old_password'] ?? '';
+            $new = $_POST['new_password'] ?? '';
+            $new2= $_POST['new_password2'] ?? '';
 
-    // Parolni o'zgartirish
-    if ($action === 'password') {
-        $old = $_POST['old_password'] ?? '';
-        $new = $_POST['new_password'] ?? '';
-        $new2= $_POST['new_password2'] ?? '';
-
-        if (!password_verify($old, $u['password'])) {
-            $err = lang()==='uz_cyrillic' ? 'Эски парол нотўғри' : 'Eski parol noto\'g\'ri';
-        } elseif (strlen($new) < 6) {
-            $err = lang()==='uz_cyrillic' ? "Янги парол камида 6 белги" : "Yangi parol kamida 6 belgi";
-        } elseif ($new !== $new2) {
-            $err = lang()==='uz_cyrillic' ? 'Парол мос келмади' : 'Parol mos kelmadi';
-        } else {
-            db()->execute("UPDATE users SET password=? WHERE id=?", [password_hash($new, PASSWORD_DEFAULT), $u['id']]);
-            $msg = lang()==='uz_cyrillic' ? 'Парол ўзгартирилди' : 'Parol o\'zgartirildi';
+            $r = Auth::change_password($u['id'], $old, $new, $new2);
+            if ($r['ok']) $msg = $r['msg'];
+            else $err = $r['msg'];
         }
     }
 }
@@ -77,6 +82,7 @@ render_head(t('profile'));
     <div class="card">
       <h3 style="font-size:18px;font-weight:700;margin-bottom:18px"><?= lang()==='uz_cyrillic' ? 'Шахсий маълумотлар' : 'Shaxsiy ma\'lumotlar' ?></h3>
       <form method="post" enctype="multipart/form-data">
+      <?= csrf_field() ?>
         <input type="hidden" name="action" value="profile">
 
         <!-- Avatar -->
@@ -125,6 +131,7 @@ render_head(t('profile'));
       <div class="card mb-3">
         <h3 style="font-size:18px;font-weight:700;margin-bottom:18px"><?= lang()==='uz_cyrillic' ? 'Паролни ўзгартириш' : 'Parolni o\'zgartirish' ?></h3>
         <form method="post">
+      <?= csrf_field() ?>
           <input type="hidden" name="action" value="password">
           <div class="form-group">
             <label class="form-label"><?= lang()==='uz_cyrillic' ? 'Эски парол' : 'Eski parol' ?></label>

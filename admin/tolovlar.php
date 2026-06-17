@@ -1,28 +1,35 @@
 <?php
-require_once __DIR__ . '/../includes/functions.php';
+require_once __DIR__ . '/../includes/auth.php';
 require_admin();
 
 $lang_field = lang() === 'uz_cyrillic' ? 'cyrillic' : 'latin';
-$msg = '';
+$msg = ''; $err = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action = $_POST['action'] ?? '';
-    $id = (int)($_POST['id'] ?? 0);
-    if ($action === 'set_status' && $id) {
-        $status = in_array($_POST['status'], ['pending','approved','rejected','refunded']) ? $_POST['status'] : 'pending';
-        db()->execute("UPDATE payments SET status=? WHERE id=?", [$status, $id]);
+    if (!csrf_check()) {
+        $err = t('csrf_invalid');
+    } else {
+        $action = $_POST['action'] ?? '';
+        $id = (int)($_POST['id'] ?? 0);
+        if ($action === 'set_status' && $id) {
+            $status = in_array($_POST['status'] ?? '', ['pending','approved','rejected','refunded']) ? $_POST['status'] : 'pending';
+            db()->execute("UPDATE payments SET status=? WHERE id=?", [$status, $id]);
 
-        // Agar approved bo'lsa, foydalanuvchi tarifi yangilanadi
-        if ($status === 'approved') {
-            $p = db()->fetch("SELECT * FROM payments WHERE id=?", [$id]);
-            if ($p && $p['tariff_id']) {
-                $tariff = db()->fetch("SELECT * FROM tariffs WHERE id=?", [$p['tariff_id']]);
-                $expires = date('Y-m-d H:i:s', strtotime("+{$tariff['duration_days']} days"));
-                db()->execute("UPDATE users SET tariff_id=?, tariff_expires_at=? WHERE id=?",
-                    [$p['tariff_id'], $expires, $p['user_id']]);
+            // Agar approved bo'lsa, foydalanuvchi tarifi yangilanadi
+            if ($status === 'approved') {
+                $p = db()->fetch("SELECT * FROM payments WHERE id=?", [$id]);
+                if ($p && $p['tariff_id']) {
+                    $tariff = db()->fetch("SELECT * FROM tariffs WHERE id=?", [$p['tariff_id']]);
+                    if ($tariff) {
+                        $expires = date('Y-m-d H:i:s', strtotime("+{$tariff['duration_days']} days"));
+                        db()->execute("UPDATE users SET tariff_id=?, tariff_expires_at=? WHERE id=?",
+                            [$p['tariff_id'], $expires, $p['user_id']]);
+                    }
+                }
             }
+            audit('payment_status_changed', "Payment #$id → $status");
+            $msg = t('updated_success');
         }
-        $msg = lang()==='uz_cyrillic' ? 'Янгиланди' : 'Yangilandi';
     }
 }
 
@@ -122,6 +129,7 @@ render_head(t('payments'));
             <td><?= date('d.m.Y H:i', strtotime($p['created_at'])) ?></td>
             <td>
               <form method="post" style="display:flex;gap:4px">
+      <?= csrf_field() ?>
                 <input type="hidden" name="action" value="set_status">
                 <input type="hidden" name="id" value="<?= $p['id'] ?>">
                 <select name="status" class="form-control" style="padding:6px 8px;font-size:12px">

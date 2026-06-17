@@ -1,69 +1,81 @@
 <?php
-require_once __DIR__ . '/../includes/functions.php';
+require_once __DIR__ . '/../includes/auth.php';
 require_admin();
 
-$msg = '';
+$msg = ''; $err = '';
 
 // Save settings
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action = $_POST['action'] ?? '';
+    if (!csrf_check()) {
+        $err = t('csrf_invalid');
+    } else {
+        $action = $_POST['action'] ?? '';
 
-    // LOGO yuklash
-    if ($action === 'logo' && !empty($_FILES['logo']['name'])) {
-        $ext = strtolower(pathinfo($_FILES['logo']['name'], PATHINFO_EXTENSION));
-        if (in_array($ext, ['png','jpg','jpeg','svg','webp'])) {
-            $name = 'logo.' . $ext;
-            $dest = BASE_PATH . '/assets/images/' . $name;
-            @mkdir(dirname($dest), 0755, true);
-            if (@move_uploaded_file($_FILES['logo']['tmp_name'], $dest)) {
-                db()->execute("INSERT INTO settings (setting_key,setting_value,setting_type,setting_group) VALUES ('site_logo',?,'image','general')
-                               ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)", ['/assets/images/' . $name]);
+        // LOGO yuklash — Security::upload_image orqali
+        if ($action === 'logo' && !empty($_FILES['logo']['name'])) {
+            $up = Security::upload_image($_FILES['logo'], 'logo');
+            if ($up['ok']) {
+                db()->execute(
+                    "INSERT INTO settings (setting_key,setting_value,setting_type,setting_group)
+                     VALUES ('site_logo',?,'image','general')
+                     ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)",
+                    [$up['url']]);
+                @chmod(BASE_PATH . $up['url'], 0644);
                 $msg = lang()==='uz_cyrillic' ? 'Логотип юкланди' : 'Logotip yuklandi';
+            } else {
+                $err = $up['error'];
             }
         }
-    }
-    // BANNER yuklash
-    elseif ($action === 'banner' && !empty($_FILES['banner']['name'])) {
-        $ext = strtolower(pathinfo($_FILES['banner']['name'], PATHINFO_EXTENSION));
-        if (in_array($ext, ['png','jpg','jpeg','webp'])) {
-            $name = 'banner.' . $ext;
-            $dest = BASE_PATH . '/assets/images/' . $name;
-            @mkdir(dirname($dest), 0755, true);
-            if (@move_uploaded_file($_FILES['banner']['tmp_name'], $dest)) {
-                db()->execute("INSERT INTO settings (setting_key,setting_value,setting_type,setting_group) VALUES ('site_banner',?,'image','general')
-                               ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)", ['/assets/images/' . $name]);
+        // BANNER yuklash
+        elseif ($action === 'banner' && !empty($_FILES['banner']['name'])) {
+            $up = Security::upload_image($_FILES['banner'], 'banner');
+            if ($up['ok']) {
+                db()->execute(
+                    "INSERT INTO settings (setting_key,setting_value,setting_type,setting_group)
+                     VALUES ('site_banner',?,'image','general')
+                     ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)",
+                    [$up['url']]);
+                @chmod(BASE_PATH . $up['url'], 0644);
                 $msg = lang()==='uz_cyrillic' ? 'Баннер юкланди' : 'Banner yuklandi';
+            } else {
+                $err = $up['error'];
             }
         }
-    }
-    // Default ticket image
-    elseif (in_array($action, ['default_ticket_image','default_question_image']) && !empty($_FILES['image']['name'])) {
-        $up = Security::upload_image($_FILES['image'], $action);
-        if ($up['ok']) {
-            db()->execute("INSERT INTO settings (setting_key,setting_value,setting_type,setting_group) VALUES (?,?,'image','general')
-                           ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)",
-                           [$action, $up['url']]);
-            $msg = 'Standart rasm yangilandi';
-        } else {
-            $msg = $up['error'] ?? 'Yuklash xatosi';
+        // Default rasmlar (ticket/question)
+        elseif (in_array($action, ['default_ticket_image','default_question_image']) && !empty($_FILES['image']['name'])) {
+            $up = Security::upload_image($_FILES['image'], $action);
+            if ($up['ok']) {
+                db()->execute(
+                    "INSERT INTO settings (setting_key,setting_value,setting_type,setting_group)
+                     VALUES (?,?,'image','general')
+                     ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)",
+                    [$action, $up['url']]);
+                @chmod(BASE_PATH . $up['url'], 0644);
+                $msg = lang()==='uz_cyrillic' ? 'Стандарт расм янгиланди' : 'Standart rasm yangilandi';
+            } else {
+                $err = $up['error'];
+            }
         }
-    }
-    // Boshqa sozlamalar (group bo'yicha)
-    elseif ($action === 'save_group') {
-        $group = $_POST['group'] ?? '';
-        foreach ($_POST as $k => $v) {
-            if (in_array($k, ['action','group'])) continue;
-            if (is_array($v)) continue;
-            db()->execute("INSERT INTO settings (setting_key, setting_value, setting_group) VALUES (?,?,?)
-                           ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), setting_group = VALUES(setting_group)",
-                          [$k, $v, $group]);
+        // Boshqa sozlamalar (group bo'yicha)
+        elseif ($action === 'save_group') {
+            $group = Security::clean($_POST['group'] ?? '', 50);
+            foreach ($_POST as $k => $v) {
+                if (in_array($k, ['action','group','csrf_token'], true)) continue;
+                if (is_array($v)) continue;
+                db()->execute(
+                    "INSERT INTO settings (setting_key, setting_value, setting_group)
+                     VALUES (?,?,?)
+                     ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), setting_group = VALUES(setting_group)",
+                    [Security::clean($k, 100), $v, $group]);
+            }
+            flush_settings_cache();
+            $msg = lang()==='uz_cyrillic' ? 'Сақланди' : 'Saqlandi';
         }
-        $msg = lang()==='uz_cyrillic' ? 'Сақланди' : 'Saqlandi';
+
+        // Settings cache
+        flush_settings_cache();
     }
 }
-
-// Cache resetlash
-flush_settings_cache();
 
 $tab = $_GET['tab'] ?? 'general';
 
@@ -76,7 +88,8 @@ render_head(t('settings'));
     <div class="page-title">⚙️ <?= t('settings') ?></div>
   </div>
 
-  <?php if ($msg): ?><div class="alert alert-success"><?= e($msg) ?></div><?php endif; ?>
+  <?php if ($msg): ?><div class="alert alert-success"><?= icon('check-circle', 18) ?> <?= e($msg) ?></div><?php endif; ?>
+  <?php if (!empty($err)): ?><div class="alert alert-danger"><?= icon('x-circle', 18) ?> <?= e($err) ?></div><?php endif; ?>
 
   <!-- Tabs -->
   <div class="card mb-3" style="padding:8px;display:flex;gap:6px;overflow-x:auto;flex-wrap:wrap">
@@ -100,6 +113,7 @@ render_head(t('settings'));
   <div class="card">
     <h3 style="font-size:18px;font-weight:700;margin-bottom:18px"><?= lang()==='uz_cyrillic' ? 'Умумий созламалар' : 'Umumiy sozlamalar' ?></h3>
     <form method="post">
+      <?= csrf_field() ?>
       <input type="hidden" name="action" value="save_group">
       <input type="hidden" name="group" value="general">
       <div class="form-group"><label class="form-label">Site Name</label><input type="text" name="site_name" class="form-control" value="<?= e(setting('site_name')) ?>"></div>
@@ -131,6 +145,7 @@ render_head(t('settings'));
         <?php endif; ?>
       </div>
       <form method="post" enctype="multipart/form-data" id="logoForm">
+      <?= csrf_field() ?>
         <input type="hidden" name="action" value="logo">
         <div class="image-uploader" id="logoDrop">
           <input type="file" name="logo" accept="image/*" id="logoInput" hidden required>
@@ -164,6 +179,7 @@ render_head(t('settings'));
         <?php endif; ?>
       </div>
       <form method="post" enctype="multipart/form-data">
+      <?= csrf_field() ?>
         <input type="hidden" name="action" value="banner">
         <div class="image-uploader" id="bannerDrop">
           <input type="file" name="banner" accept="image/*" id="bannerInput" hidden required>
@@ -196,6 +212,7 @@ render_head(t('settings'));
             <img src="<?= e(setting('default_ticket_image', '/assets/images/default-ticket.svg')) ?>" alt="">
           </div>
           <form method="post" enctype="multipart/form-data" class="mt-2">
+      <?= csrf_field() ?>
             <input type="hidden" name="action" value="default_ticket_image">
             <input type="file" name="image" accept="image/*" class="form-control" required>
             <button class="btn btn-light btn-sm btn-block mt-1">Yangilash</button>
@@ -207,6 +224,7 @@ render_head(t('settings'));
             <img src="<?= e(setting('default_question_image', '/assets/images/default-question.svg')) ?>" alt="">
           </div>
           <form method="post" enctype="multipart/form-data" class="mt-2">
+      <?= csrf_field() ?>
             <input type="hidden" name="action" value="default_question_image">
             <input type="file" name="image" accept="image/*" class="form-control" required>
             <button class="btn btn-light btn-sm btn-block mt-1">Yangilash</button>
@@ -263,6 +281,7 @@ render_head(t('settings'));
   <div class="card">
     <h3 style="font-size:18px;font-weight:700;margin-bottom:18px"><?= lang()==='uz_cyrillic' ? 'Контакт' : 'Kontakt' ?></h3>
     <form method="post">
+      <?= csrf_field() ?>
       <input type="hidden" name="action" value="save_group"><input type="hidden" name="group" value="contact">
       <div class="grid-2" style="gap:14px">
         <div class="form-group"><label class="form-label">Telefon</label><input type="text" name="site_phone" class="form-control" value="<?= e(setting('site_phone')) ?>"></div>
@@ -279,6 +298,7 @@ render_head(t('settings'));
   <div class="card">
     <h3 style="font-size:18px;font-weight:700;margin-bottom:18px">Ijtimoiy tarmoqlar</h3>
     <form method="post">
+      <?= csrf_field() ?>
       <input type="hidden" name="action" value="save_group"><input type="hidden" name="group" value="social">
       <div class="grid-2" style="gap:14px">
         <div class="form-group"><label class="form-label">Telegram</label><input type="url" name="telegram_url" class="form-control" value="<?= e(setting('telegram_url')) ?>"></div>
@@ -294,6 +314,7 @@ render_head(t('settings'));
   <div class="card">
     <h3 style="font-size:18px;font-weight:700;margin-bottom:18px"><?= lang()==='uz_cyrillic' ? "Тўлов созламалари" : "To'lov sozlamalari" ?></h3>
     <form method="post">
+      <?= csrf_field() ?>
       <input type="hidden" name="action" value="save_group"><input type="hidden" name="group" value="payment">
       <div class="grid-2" style="gap:14px">
         <div class="form-group"><label class="form-label">Karta raqami</label><input type="text" name="card_number" class="form-control" value="<?= e(setting('card_number')) ?>"></div>
@@ -314,6 +335,7 @@ render_head(t('settings'));
   <div class="card">
     <h3 style="font-size:18px;font-weight:700;margin-bottom:18px">SEO</h3>
     <form method="post">
+      <?= csrf_field() ?>
       <input type="hidden" name="action" value="save_group"><input type="hidden" name="group" value="seo">
       <div class="form-group"><label class="form-label">Title</label><input type="text" name="seo_title" class="form-control" value="<?= e(setting('seo_title')) ?>"></div>
       <div class="form-group"><label class="form-label">Description</label><textarea name="seo_description" class="form-control" rows="2"><?= e(setting('seo_description')) ?></textarea></div>
@@ -341,6 +363,7 @@ render_head(t('settings'));
     <?php endif; ?>
 
     <form method="post">
+      <?= csrf_field() ?>
       <input type="hidden" name="action" value="save_group"><input type="hidden" name="group" value="telegram">
       <div class="form-group">
         <label class="form-label">Bot Token</label>
@@ -375,6 +398,7 @@ render_head(t('settings'));
       <?php endif; ?>
     </div>
     <form method="post" style="margin-top:14px">
+      <?= csrf_field() ?>
       <input type="hidden" name="set_webhook" value="1">
       <button class="btn btn-success">🔗 Webhook'ni o'rnatish</button>
     </form>

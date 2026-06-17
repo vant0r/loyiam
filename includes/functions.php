@@ -679,6 +679,7 @@ table tbody tr.is-highlighted{background:var(--primary-100)}
 @keyframes slideDown{from{opacity:0;transform:translateY(-10px);max-height:0}to{opacity:1;transform:translateY(0);max-height:200px}}
 @keyframes slideInR{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
 @keyframes scaleIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
+@keyframes modalSlideOut{from{opacity:1;transform:translateY(0) scale(1)}to{opacity:0;transform:translateY(20px) scale(.96)}}
 @keyframes floatY{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
 @keyframes skeletonShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
@@ -1363,19 +1364,49 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
 
 // Modal helpers
 window.openModal = id => {
-  const m = document.getElementById(id);
-  if (m) { m.classList.add('show'); document.body.style.overflow = 'hidden'; }
+  const m = typeof id === 'string' ? document.getElementById(id) : id;
+  if (m) {
+    m.classList.add('show');
+    document.body.style.overflow = 'hidden';
+    // Focus first input
+    setTimeout(() => {
+      const firstInput = m.querySelector('input:not([type=hidden]):not([disabled]), textarea, select');
+      if (firstInput) firstInput.focus();
+    }, 100);
+  }
 };
 window.closeModal = id => {
-  const m = id ? document.getElementById(id) : document.querySelector('.modal-backdrop.show');
-  if (m) { m.classList.remove('show'); document.body.style.overflow = ''; }
+  const m = id
+    ? (typeof id === 'string' ? document.getElementById(id) : id)
+    : document.querySelector('.modal-backdrop.show');
+  if (!m) return;
+  const modal = m.querySelector('.modal');
+  if (modal) {
+    modal.style.animation = 'modalSlideOut .25s ease forwards';
+    m.style.animation = 'fadeOut .25s ease forwards';
+    setTimeout(() => {
+      m.classList.remove('show');
+      modal.style.animation = '';
+      m.style.animation = '';
+      document.body.style.overflow = '';
+    }, 250);
+  } else {
+    m.classList.remove('show');
+    document.body.style.overflow = '';
+  }
 };
+// Yagona modal handler (data-modal-open / data-modal-close / backdrop click)
 document.addEventListener('click', e => {
-  if (e.target.classList.contains('modal-backdrop')) closeModal();
-  const close = e.target.closest('[data-modal-close]');
-  if (close) closeModal();
-  const open = e.target.closest('[data-modal-open]');
-  if (open) openModal(open.dataset.modalOpen);
+  const closeTrigger = e.target.closest('[data-modal-close]');
+  if (closeTrigger) { e.preventDefault(); closeModal(closeTrigger.closest('.modal-backdrop')); return; }
+
+  const openTrigger = e.target.closest('[data-modal-open]');
+  if (openTrigger) { e.preventDefault(); openModal(openTrigger.dataset.modalOpen); return; }
+
+  // Backdrop bosish (modal ichida emas)
+  if (e.target.classList.contains('modal-backdrop')) {
+    closeModal(e.target);
+  }
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
@@ -1421,11 +1452,17 @@ document.querySelectorAll('[data-count]').forEach(el => observer.observe(el));
 
 // Form button loading state
 document.addEventListener('submit', e => {
-  const btn = e.target.querySelector('button[type="submit"]:not([data-no-loading])');
-  if (btn) {
+  const form = e.target;
+  if (form.tagName !== 'FORM' || form.dataset.noLoading) return;
+  const btn = form.querySelector('button[type="submit"]:not([data-no-loading])');
+  if (btn && !btn.classList.contains('btn-loading')) {
     btn.classList.add('btn-loading');
     btn.disabled = true;
-    setTimeout(() => { btn.classList.remove('btn-loading'); btn.disabled = false; }, 8000);
+    // Avto-restore agar form 15 soniyada javob qaytarmasa
+    setTimeout(() => {
+      btn.classList.remove('btn-loading');
+      btn.disabled = false;
+    }, 15000);
   }
 });
 
@@ -1659,32 +1696,6 @@ document.querySelectorAll('img[loading="lazy"]').forEach(img => {
     delete img.dataset.loading;
   }, {once:true});
 });
-
-// Smoother modal close — animation aware
-const modalCloseHandler = (e) => {
-  if (e.target.classList.contains('modal-backdrop') ||
-      e.target.closest('[data-modal-close]')) {
-    const backdrop = e.target.closest('.modal-backdrop');
-    if (backdrop) {
-      const modal = backdrop.querySelector('.modal');
-      if (modal) {
-        modal.style.animation = 'modalSlide .3s var(--ease-soft) reverse';
-        backdrop.style.animation = 'fadeIn .25s ease reverse';
-        setTimeout(() => {
-          backdrop.classList.remove('show');
-          modal.style.animation = '';
-          backdrop.style.animation = '';
-          document.body.style.overflow = '';
-        }, 300);
-      } else {
-        backdrop.classList.remove('show');
-        document.body.style.overflow = '';
-      }
-    }
-  }
-};
-// Replace existing modal close
-document.addEventListener('click', modalCloseHandler);
 </script>
 <?php
 }

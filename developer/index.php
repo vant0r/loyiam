@@ -1,18 +1,25 @@
 <?php
-require_once __DIR__ . '/../includes/functions.php';
+require_once __DIR__ . '/../includes/auth.php';
 require_developer();
 
 $msg = '';
 
 // Cache tozalash
 if (($_POST['action'] ?? '') === 'clear_cache') {
-    // Statik cache fayllarni o'chirish (agar mavjud bo'lsa)
-    $cleared = 0;
-    $cacheDir = BASE_PATH . '/cache';
-    if (is_dir($cacheDir)) {
-        foreach (glob($cacheDir . '/*') as $f) { @unlink($f); $cleared++; }
+    if (!csrf_check()) {
+        $msg = t('csrf_invalid');
+    } else {
+        // Statik cache fayllarni o'chirish (agar mavjud bo'lsa)
+        $cleared = 0;
+        $cacheDir = BASE_PATH . '/cache';
+        if (is_dir($cacheDir)) {
+            foreach (glob($cacheDir . '/data/*.cache') as $f) { @unlink($f); $cleared++; }
+            foreach (glob($cacheDir . '/ratelimit/*.json') as $f) { @unlink($f); $cleared++; }
+        }
+        flush_settings_cache();
+        audit('cache_cleared', "Cleared $cleared files");
+        $msg = "Cache tozalandi ($cleared fayl)";
     }
-    $msg = "Cache tozalandi ($cleared fayl)";
 }
 
 // Loglarni eksport
@@ -158,6 +165,7 @@ render_head('Developer Panel');
       <div class="card" style="background:var(--bg-soft)"><div style="color:var(--text-soft);font-size:13px">Size</div><strong>0 KB</strong></div>
     </div>
     <form method="post">
+      <?= csrf_field() ?>
       <input type="hidden" name="action" value="clear_cache">
       <button class="btn btn-danger btn-sm">🗑️ Cache tozalash</button>
     </form>
