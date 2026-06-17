@@ -6,7 +6,7 @@
  *   - HTML sahifalar: Network First (fallback to cache)
  *   - API/POST: Network Only (cache qilmaymiz)
  */
-const CACHE_VERSION = 'vp-v2';
+const CACHE_VERSION = 'vp-v3';
 const STATIC_CACHE  = `${CACHE_VERSION}-static`;
 const PAGES_CACHE   = `${CACHE_VERSION}-pages`;
 
@@ -14,6 +14,7 @@ const STATIC_ASSETS = [
   '/',
   '/assets/images/logo.svg',
   '/assets/images/banner.svg',
+  '/assets/images/icon-512.svg',
   '/manifest.json',
 ];
 

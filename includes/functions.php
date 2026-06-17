@@ -154,6 +154,12 @@ function render_head(string $page_title = '', array $opts = []): void {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="<?= PRIMARY_COLOR ?>">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="<?= e(setting('site_name', SITE_NAME)) ?>">
+<meta name="format-detection" content="telephone=no, address=no, email=no">
+<meta name="color-scheme" content="light">
 <title><?= $title ?></title>
 <meta name="description" content="<?= $desc ?>">
 <meta name="keywords" content="<?= e(setting('seo_keywords')) ?>">
@@ -170,7 +176,18 @@ function render_head(string $page_title = '', array $opts = []): void {
 /* ============================================================
    DESIGN SYSTEM v2 — VatanParvar Yaypan
    ============================================================ */
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+/* — Mobile-first reset (tap-highlight + touch behavior) — */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+a,button,input,select,textarea,label,summary,[role="button"],.btn,.menu-toggle,.modal-close,.toast-close,.input-action{
+  -webkit-tap-highlight-color:transparent !important;
+  -webkit-touch-callout:none;
+  touch-action:manipulation;
+}
+button:focus,a:focus,input:focus,select:focus,textarea:focus,[tabindex]:focus{outline:none}
+button:focus-visible,a:focus-visible,[role="button"]:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{
+  outline:2px solid var(--primary,#3B82F6);outline-offset:2px;border-radius:4px;
+}
 :root{
   /* — BRAND COLORS — */
   --primary-50:#EFF6FF;
@@ -1314,6 +1331,311 @@ img[loading="lazy"][data-loading]{opacity:0}
 /* Smooth scrollbar fade */
 *::-webkit-scrollbar-thumb{background:transparent;transition:background .3s ease}
 *:hover::-webkit-scrollbar-thumb{background:var(--border-strong)}
+
+/* ============================================================
+   MOBILE EXCELLENCE v2.4 — Refined responsive layer
+   ============================================================ */
+
+/* Universal touch behavior on touch-only devices */
+@media (hover:none) and (pointer:coarse){
+  /* Lighter backdrop-filters on touch (saves GPU on phones) */
+  .header{backdrop-filter:saturate(150%) blur(10px);-webkit-backdrop-filter:saturate(150%) blur(10px)}
+  .bottom-nav{backdrop-filter:saturate(150%) blur(12px);-webkit-backdrop-filter:saturate(150%) blur(12px)}
+  /* Hover effects neutralised */
+  a:hover,.btn:hover{transform:none !important}
+  .footer a:hover{transform:none}
+}
+
+/* Mobile menu — bigger trigger range up to 880px */
+@media (max-width: 880px){
+  .menu-toggle{display:inline-flex !important}
+  .nav-menu{
+    position:fixed;top:calc(60px + env(safe-area-inset-top, 0px));left:0;right:0;
+    background:rgba(255,255,255,.98);
+    backdrop-filter:saturate(180%) blur(20px);
+    -webkit-backdrop-filter:saturate(180%) blur(20px);
+    flex-direction:column;align-items:stretch;
+    padding:var(--sp-4) var(--sp-5) var(--sp-6);
+    gap:var(--sp-2);
+    border-bottom:1px solid var(--border);
+    transform:translateY(-200%);
+    transition:transform .3s var(--ease-soft);
+    box-shadow:var(--shadow-lg);
+    max-height:calc(100vh - 80px);overflow-y:auto;
+    z-index:calc(var(--z-sticky) - 1);
+    list-style:none;
+  }
+  .nav-menu.open{transform:translateY(0)}
+  .nav-menu li{width:100%;list-style:none}
+  .nav-menu a{
+    display:flex;width:100%;padding:14px 16px;
+    border-radius:var(--r-md);
+    background:var(--bg-soft);font-weight:600;font-size:15px;
+    min-height:48px;align-items:center;color:var(--text);
+  }
+  .nav-menu a:hover{background:var(--primary-light);color:var(--primary-dark)}
+  .nav-menu a.active{background:var(--primary-light);color:var(--primary-dark)}
+  .nav-menu a.active::after{display:none}
+  body.nav-open{overflow:hidden}
+  /* Hide notif bell text on tablets to save space */
+  .nav-actions{gap:8px}
+}
+
+/* Notification dropdown — full-width sheet on small phones */
+@media (max-width: 480px){
+  .notif-dropdown{
+    position:fixed !important;
+    top:auto !important;bottom:0 !important;left:0 !important;right:0 !important;
+    width:auto !important;max-width:none !important;max-height:80vh !important;
+    border-radius:var(--r-2xl) var(--r-2xl) 0 0;
+    transform:translateY(100%) !important;
+    transition:transform .3s var(--ease-soft), visibility 0s linear .3s, opacity .25s ease !important;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  .notif-wrap.open .notif-dropdown{
+    transform:translateY(0) !important;
+    transition:transform .3s var(--ease-soft), visibility 0s linear 0s, opacity .25s ease !important;
+  }
+}
+
+/* Sidebar — mobile floating toggle button */
+.sidebar-toggle-btn{
+  display:none;
+  position:fixed;top:14px;left:14px;
+  width:44px;height:44px;align-items:center;justify-content:center;
+  border-radius:var(--r-md);background:#fff;color:var(--text);
+  border:1px solid var(--border);box-shadow:var(--shadow-sm);
+  z-index:calc(var(--z-modal) + 1);cursor:pointer;
+  transition:transform var(--t-fast), background var(--t-fast);
+}
+.sidebar-toggle-btn:hover{background:var(--bg-soft)}
+.sidebar-toggle-btn:active{transform:scale(.94)}
+@media (max-width: 992px){
+  .sidebar-toggle-btn{display:inline-flex}
+  .layout .main{padding-top:72px}
+  body.sidebar-open{overflow:hidden}
+}
+
+/* Sidebar overlay (now markup-rendered) */
+.sidebar + .sidebar-overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(15,23,42,.55);
+  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+  z-index:calc(var(--z-modal) - 1);
+  opacity:0;transition:opacity .3s var(--ease-soft);
+  cursor:pointer;
+}
+@media (max-width: 992px){
+  .sidebar.open + .sidebar-overlay{display:block;opacity:1;animation:fadeIn .25s var(--ease-soft)}
+}
+@media (min-width: 993px){
+  .sidebar-toggle-btn{display:none !important}
+  .sidebar + .sidebar-overlay{display:none !important}
+}
+
+/* ============== MOBILE LAYOUT POLISH ============== */
+@media (max-width: 768px){
+  /* Tighter container padding */
+  .container{padding:0 16px}
+  /* Hero — disable expensive radial gradients & floating decoration */
+  .hero::before,.hero::after{display:none}
+  .hero{padding:48px 0 36px}
+  .hero h1,.hero-title{font-size:clamp(26px,8vw,38px);line-height:1.15;letter-spacing:-.01em}
+  .hero p.lead,.hero-subtitle{font-size:15px;line-height:1.55;max-width:none}
+  .hero-grid{grid-template-columns:1fr;gap:32px;text-align:left}
+  .hero-image,.hero-mockup{max-width:88%;margin:0 auto;font-size:90px;transform:none;animation:none}
+  .hero-image::before{display:none}
+  .floating-card,.hero-bg-shapes,.shape{display:none !important}
+  /* Auth */
+  .auth-page{padding:24px 16px;min-height:auto;min-height:100dvh}
+  .auth-box{padding:24px 20px;border-radius:var(--r-xl);max-width:none}
+  /* Cards */
+  .card{padding:20px 16px;border-radius:var(--r-lg)}
+  .pricing-card{padding:32px 20px}
+  .pricing-card.popular,.pricing-v2.is-popular{transform:none !important}
+  /* Section spacing */
+  .section{padding:48px 0}
+  .section-sm{padding:32px 0}
+  .section-title{font-size:clamp(22px,6vw,30px);margin-bottom:8px;letter-spacing:-.01em}
+  .section-subtitle{font-size:14px;margin-bottom:32px;padding:0 8px}
+  /* Grids collapse */
+  .grid-4,.grid-3,.grid-2{grid-template-columns:1fr;gap:14px}
+  .grid-6{grid-template-columns:repeat(2,1fr);gap:10px}
+  /* Footer */
+  .footer{padding:48px 0 24px;margin-top:48px}
+  .footer-grid{grid-template-columns:1fr;gap:32px;margin-bottom:24px}
+  .footer h4{font-size:14px;margin-bottom:12px}
+  .footer ul li{margin-bottom:8px}
+  /* Buttons — bigger on mobile, comfortable touch targets */
+  .btn{min-height:46px;padding:12px 20px;font-size:14px;border-radius:var(--r-md)}
+  .btn-sm{min-height:38px;padding:9px 16px;font-size:13px}
+  .btn-xs{min-height:30px;padding:6px 12px;font-size:12px}
+  .btn-lg{min-height:52px;padding:15px 28px;font-size:15px}
+  .btn-xl{min-height:56px;padding:16px 32px;font-size:16px}
+  .btn-icon{min-width:44px;min-height:44px;width:44px;height:44px;padding:10px}
+  .btn-icon.btn-sm{width:38px;height:38px;min-width:38px;min-height:38px;padding:8px}
+  .btn-block{width:100%}
+  /* Forms — iOS-zoom-safe + touch-friendly */
+  .form-control,.form-select,.form-textarea{
+    min-height:48px;padding:12px 14px;font-size:16px;border-radius:var(--r-md);
+  }
+  textarea.form-control,.form-textarea{min-height:96px}
+  .form-group{margin-bottom:16px}
+  .form-label{font-size:13px;margin-bottom:6px}
+  /* Modals — full-width bottom sheet feel */
+  .modal-backdrop{padding:0;align-items:flex-end}
+  .modal{
+    border-radius:var(--r-2xl) var(--r-2xl) 0 0;
+    max-height:92vh;width:100%;max-width:none;
+    animation:slideUpSheet .35s var(--ease-soft) both;
+  }
+  .modal-lg,.modal-xl{max-width:none}
+  .modal-header,.modal-body,.modal-footer{padding:16px}
+  .modal-footer{flex-wrap:wrap;gap:8px}
+  .modal-footer .btn{flex:1 1 auto}
+  /* Tables */
+  table th,table td{padding:10px 12px;font-size:13px}
+  .table-wrap{border-radius:var(--r-md);overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .table-wrap table{min-width:560px}
+  /* Toast — full-width bottom on mobile */
+  .toast-container{top:auto;bottom:max(16px, env(safe-area-inset-bottom));left:12px;right:12px;max-width:none}
+  .toast{animation:fadeUp .3s var(--ease-soft) both}
+  /* Pagination */
+  .pagination a,.pagination span{min-width:36px;height:36px;font-size:13px;padding:0 10px}
+  /* Tabs — horizontal scroll */
+  .tabs{padding:3px;gap:2px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tabs a,.tabs button{padding:8px 14px;font-size:13px;flex-shrink:0}
+  /* Sidebar layout */
+  .layout{grid-template-columns:1fr;display:block}
+  .main{padding:16px;padding-top:72px}
+  .page-header{flex-direction:column;align-items:flex-start;gap:12px;margin-bottom:20px}
+  .page-title{font-size:22px}
+  /* Stat cards */
+  .stat-card{padding:16px}
+  .stat-card .value{font-size:22px}
+  .stat-card .stat-icon{width:40px;height:40px}
+  /* Service cards */
+  .service-card{padding:24px 20px}
+  .service-card .icon-circle{width:56px;height:56px;font-size:26px}
+  /* Reviews */
+  .review-card{padding:20px 16px}
+  /* FAQ */
+  .faq-q{padding:14px 16px;font-size:14px}
+  .faq-a{padding:0 16px}
+  .faq-item.open .faq-a{padding:0 16px 16px}
+  /* Hero stats */
+  .hero-stats{grid-template-columns:repeat(3,1fr);gap:8px;margin-top:24px}
+  .stat-box{padding:12px 8px;border-radius:var(--r-md)}
+  .stat-num{font-size:20px}
+  .stat-label{font-size:10px;line-height:1.3}
+  /* Lang switch — bigger taps */
+  .lang-switch{padding:2px;border-radius:var(--r-md)}
+  .lang-switch a{padding:6px 10px;min-height:32px;font-size:11px;display:flex;align-items:center}
+  /* Header — slightly smaller logo on mobile */
+  .nav{padding:10px 0;gap:8px}
+  .logo-icon{width:36px;height:36px;font-size:12px}
+  .logo span:not(.logo-icon){font-size:14px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  /* Hide body section margin when bottom nav exists */
+  body.has-bottom-nav .footer{margin-bottom:8px}
+}
+
+/* Sheet animation for modals */
+@keyframes slideUpSheet{
+  0%{opacity:0;transform:translateY(100%)}
+  100%{opacity:1;transform:translateY(0)}
+}
+
+/* ============== EXTRA-SMALL DEVICES ============== */
+@media (max-width: 380px){
+  :root{
+    --fs-base:14px;--fs-sm:12px;--fs-md:15px;--fs-lg:16px;
+    --fs-xl:18px;--fs-2xl:22px;--fs-3xl:26px;--fs-4xl:32px;
+  }
+  .container{padding:0 12px}
+  .btn{padding:11px 16px;font-size:13px}
+  .nav{padding:8px 0;gap:6px}
+  .logo{font-size:13px;gap:8px}
+  .logo-icon{width:32px;height:32px;font-size:11px}
+  .logo span:not(.logo-icon){display:none}
+  .lang-switch{display:none}
+  .modal-header,.modal-body,.modal-footer{padding:12px}
+  .stat-num{font-size:18px}
+  .stat-label{font-size:9px}
+  /* Free up horizontal space */
+  .nav-actions .btn-sm{padding:8px 12px}
+}
+
+/* ============== iOS SAFE AREA / NOTCH SUPPORT ============== */
+@supports (padding: max(0px)){
+  body{
+    padding-left:env(safe-area-inset-left);
+    padding-right:env(safe-area-inset-right);
+  }
+  .footer{padding-bottom:max(var(--sp-8), env(safe-area-inset-bottom))}
+  body.has-bottom-nav{padding-bottom:calc(72px + env(safe-area-inset-bottom))}
+  .bottom-nav{padding-bottom:max(8px, env(safe-area-inset-bottom))}
+  .toast-container{top:max(16px, env(safe-area-inset-top))}
+  .sidebar-toggle-btn{top:max(14px, env(safe-area-inset-top))}
+}
+
+/* ============== LANDSCAPE PHONE ============== */
+@media (max-height: 480px) and (orientation: landscape){
+  .auth-page{padding:12px;min-height:auto;align-items:flex-start}
+  .auth-box{padding:18px;max-width:none;width:100%}
+  .hero{padding:24px 0}
+  .modal{max-height:96vh}
+  .menu-toggle{display:inline-flex !important}
+}
+
+/* ============== SMOOTH MOMENTUM SCROLL ============== */
+.scrollable, .table-wrap, .tabs, .modal, .modal-body{
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
+}
+body{overscroll-behavior-y:none}
+
+/* ============== LONG-WORD WRAPPING (prevents horizontal scroll on Uzbek/Cyrillic words) ============== */
+h1,h2,h3,h4,h5,h6,p,a,span,td,li,div{word-wrap:break-word;overflow-wrap:break-word}
+.btn,.badge,.lang-switch a,.tabs a,.tabs button,.bottom-nav a span{word-wrap:normal;overflow-wrap:normal;white-space:nowrap}
+
+/* ============== PERFORMANCE — drop heavy effects on mobile ============== */
+@media (max-width: 768px){
+  /* Avoid blanket will-change on mobile (saves GPU memory) */
+  .pricing-card,.stat-card,.card-hover,.btn-primary,.fade-up,.feature-card,.testimonial-card{will-change:auto}
+  /* Lighter shadows */
+  .stat-card,.card{box-shadow:0 1px 3px rgba(15,23,42,.06)}
+  .stat-card:hover,.card:hover,.card-hover:hover{box-shadow:0 4px 12px rgba(15,23,42,.08);transform:translateY(-1px) !important}
+  /* No filter:blur effects on hero (expensive) */
+  .hero-image::before{display:none}
+  /* Reduce animations on slower devices */
+  *,*::before,*::after{animation-duration:.6s !important}
+}
+
+/* ============== STABLE VIEWPORT HEIGHT (no jumping mobile address bar) ============== */
+.full-vh{min-height:100vh;min-height:100dvh}
+.auth-page{min-height:100vh;min-height:100dvh}
+
+/* ============== ACCESSIBILITY: HIGH CONTRAST FOCUS ============== */
+@media (prefers-contrast: more){
+  :focus-visible{outline-width:3px;outline-offset:3px}
+  .btn{border-width:2px}
+}
+
+/* ============== IMAGE SAFE FALLBACK ============== */
+img{max-width:100%;height:auto}
+
+/* ============== MOTION-REDUCED ============== */
+@media (prefers-reduced-motion: reduce){
+  .hero h1,.hero-title,.hero p.lead,.hero-subtitle,.hero-stats,.hero .flex.gap-3,
+  main, .container > section:first-child, .stagger > *,
+  .fade-up, .reveal-on-scroll, .reveal-left, .reveal-right, .reveal-up{
+    animation:none !important;opacity:1 !important;transform:none !important;clip-path:none !important;filter:none !important;
+  }
+  .hero-image,.hero-mockup{animation:none !important}
+}
+
+/* ============== END MOBILE EXCELLENCE v2.4 ============== */
 </style>
 <?php if (!empty($opts['extra_head'])) echo $opts['extra_head']; ?>
 </head>
@@ -1375,7 +1697,7 @@ function render_header(string $active = ''): void {
         <a href="/login.php" class="btn btn-ghost btn-sm"><?= t('login') ?></a>
         <a href="/register.php" class="btn btn-primary btn-sm"><?= t('register') ?></a>
       <?php endif; ?>
-      <button class="menu-toggle" onclick="document.getElementById('navMenu').classList.toggle('open')" aria-label="Menu">
+      <button class="menu-toggle" type="button" onclick="window.toggleNav&&window.toggleNav(this)" aria-label="Menu" aria-expanded="false" aria-controls="navMenu">
         <?= icon('menu', 22) ?>
       </button>
     </div>
@@ -1446,8 +1768,53 @@ document.querySelectorAll('.faq-item').forEach(item => {
   });
 });
 
-// Sidebar toggle
-function toggleSidebar(){ document.querySelector('.sidebar')?.classList.toggle('open'); }
+// Sidebar toggle (admin/user panels)
+window.toggleSidebar = (force) => {
+  const sb = document.querySelector('.sidebar');
+  if (!sb) return;
+  const willOpen = typeof force === 'boolean' ? force : !sb.classList.contains('open');
+  sb.classList.toggle('open', willOpen);
+  document.body.classList.toggle('sidebar-open', willOpen);
+  document.querySelector('.sidebar-toggle-btn')?.setAttribute('aria-expanded', willOpen);
+};
+
+// Mobile nav menu toggle (header hamburger)
+window.toggleNav = (btn) => {
+  const menu = document.getElementById('navMenu');
+  if (!menu) return;
+  const willOpen = !menu.classList.contains('open');
+  menu.classList.toggle('open', willOpen);
+  document.body.classList.toggle('nav-open', willOpen);
+  (btn || document.querySelector('.menu-toggle'))?.setAttribute('aria-expanded', willOpen);
+};
+
+// Close mobile nav on outside click, link click, or Escape
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('navMenu');
+  if (menu && menu.classList.contains('open')) {
+    if (e.target.closest('.menu-toggle')) return;
+    if (e.target.closest('.nav-menu a') || !e.target.closest('.nav-menu')) {
+      menu.classList.remove('open');
+      document.body.classList.remove('nav-open');
+      document.querySelector('.menu-toggle')?.setAttribute('aria-expanded','false');
+    }
+  }
+  // Close sidebar on link click (mobile)
+  const sb = document.querySelector('.sidebar.open');
+  if (sb && e.target.closest('.sidebar a') && window.innerWidth <= 992) {
+    setTimeout(() => window.toggleSidebar(false), 150);
+  }
+});
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  const menu = document.getElementById('navMenu');
+  if (menu?.classList.contains('open')) {
+    menu.classList.remove('open');
+    document.body.classList.remove('nav-open');
+    document.querySelector('.menu-toggle')?.setAttribute('aria-expanded','false');
+  }
+  if (document.querySelector('.sidebar.open')) window.toggleSidebar(false);
+});
 
 // Smooth scroll
 document.querySelectorAll('a[href^="#"]').forEach(a => {
@@ -1727,7 +2094,7 @@ document.addEventListener('click', e => {
   window.addEventListener('scroll', onScroll, {passive:true});
 })();
 
-// Mobile sidebar overlay
+// Mobile sidebar overlay (markup-rendered now, but JS sync for legacy pages)
 (function(){
   const sidebar = document.querySelector('.sidebar');
   if (!sidebar) return;
@@ -1737,13 +2104,7 @@ document.addEventListener('click', e => {
     overlay.className = 'sidebar-overlay';
     sidebar.parentNode.insertBefore(overlay, sidebar.nextSibling);
   }
-  overlay.addEventListener('click', () => sidebar.classList.remove('open'));
-  // Close on link click (mobile)
-  sidebar.querySelectorAll('a').forEach(a => {
-    a.addEventListener('click', () => {
-      if (window.innerWidth <= 992) sidebar.classList.remove('open');
-    });
-  });
+  overlay.addEventListener('click', () => window.toggleSidebar?.(false));
 })();
 
 // Auto-add data-label attributes to table cells (for mobile responsive table)
@@ -1917,7 +2278,7 @@ function render_sidebar(string $type, string $active): void {
     }
     $logo_text = lang()==='uz_cyrillic' ? 'ВП Яйпан' : 'VP Yaypan';
 ?>
-<aside class="sidebar">
+<aside class="sidebar" id="appSidebar">
   <div class="sidebar-logo">
     <span class="logo-icon">VP</span>
     <span><?= $logo_text ?></span>
@@ -1948,6 +2309,10 @@ function render_sidebar(string $type, string $active): void {
     </a>
   </div>
 </aside>
+<div class="sidebar-overlay" onclick="window.toggleSidebar&&window.toggleSidebar(false)"></div>
+<button class="sidebar-toggle-btn" type="button" onclick="window.toggleSidebar&&window.toggleSidebar()" aria-label="<?= lang()==='uz_cyrillic' ? 'Меню' : 'Menyu' ?>" aria-expanded="false" aria-controls="appSidebar">
+  <?= icon('menu', 22) ?>
+</button>
 <?php
     // Mobile bottom nav (avto)
     if ($type === 'user' || $type === 'admin') render_bottom_nav($type, $active);
