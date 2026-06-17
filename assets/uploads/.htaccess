@@ -1,0 +1,53 @@
+# Uploads folder — STRICT NO-EXECUTE policy
+# Bu papkadan PHP, CGI, HTML va shu kabi fayllar bajarilmasligi shart
+
+# Hech qanday script bajarilmasin
+<FilesMatch "\.(php|php[0-9]|phtml|phar|pht|cgi|pl|py|rb|sh|exe|js|asp|aspx|jsp)$">
+    Require all denied
+</FilesMatch>
+
+# SVG/HTML/XML — script vektor bo'lishi mumkin
+<FilesMatch "\.(svg|svgz|html?|htm|xml|xhtml)$">
+    Require all denied
+</FilesMatch>
+
+# Handler'larni o'chiramiz
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php8.c>
+    php_flag engine off
+</IfModule>
+
+RemoveHandler .php .php3 .php4 .php5 .php7 .php8 .phtml .phar .pht .cgi .pl
+RemoveType .php .php3 .php4 .php5 .php7 .php8 .phtml .phar .pht
+
+# Static rasm fayllari uchun MIME-sniffing himoyasi
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set Content-Security-Policy "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'"
+    # Fayllarni inline emas, attachment sifatida ochish (XSS oldini olish)
+    <FilesMatch "\.(svg|svgz|html?|xml)$">
+        Header set Content-Disposition "attachment"
+    </FilesMatch>
+</IfModule>
+
+# Faqat ruxsat etilgan rasm formatlari
+<FilesMatch "\.(jpg|jpeg|png|webp|gif|ico)$">
+    Require all granted
+</FilesMatch>
+
+# Hotlink himoyasi (boshqa saytlar bizning rasmlarni o'g'rilamasin)
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{HTTP_REFERER} !^$
+    RewriteCond %{HTTP_REFERER} !^https?://(www\.)?%{HTTP_HOST}/.*$ [NC]
+    RewriteCond %{HTTP_REFERER} !^https?://(www\.)?(google|bing|duckduckgo|yandex|telegram|t\.me)\. [NC]
+    RewriteRule \.(jpg|jpeg|png|webp|gif)$ - [F,L]
+</IfModule>
+
+# Direktoriya listing yo'q
+Options -Indexes -ExecCGI
