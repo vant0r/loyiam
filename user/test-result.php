@@ -104,6 +104,36 @@ render_header();
   .result-emoji{font-size:64px}
   .result-stats{grid-template-columns:repeat(2,1fr);gap:12px}
 }
+
+/* ============================================================
+   MOBILE-FIRST OVERRIDES v3.0 — test-result.php
+   ============================================================ */
+@media (max-width: 880px){
+  .result-hero{padding:40px 16px}
+  .result-emoji{font-size:60px;margin-bottom:10px}
+  .result-percent{font-size:78px;margin:14px 0}
+  .result-percent .pct{font-size:38px}
+  .result-stats{grid-template-columns:repeat(2,1fr);gap:10px;margin-top:24px;max-width:100%}
+  .result-stat{padding:14px 12px;border-radius:12px}
+  .result-stat .v{font-size:24px}
+  .result-stat .l{font-size:11px;line-height:1.3}
+  .result-hero h1{font-size:26px !important;margin-bottom:6px !important}
+  .result-hero p{font-size:14px !important}
+  .answer-detail{padding:14px;margin-bottom:10px;border-radius:10px}
+  .answer-detail .qtxt{font-size:14px;margin-bottom:10px}
+  .ans-row{padding:8px 10px;font-size:13px;gap:8px;flex-direction:column;align-items:flex-start}
+  .ans-row .label{width:auto;font-size:10px;margin-bottom:2px}
+}
+
+@media (max-width: 480px){
+  .result-hero{padding:30px 14px}
+  .result-emoji{font-size:48px}
+  .result-percent{font-size:60px;margin:10px 0}
+  .result-percent .pct{font-size:30px}
+  .result-stat .v{font-size:20px}
+  .result-hero h1{font-size:22px !important}
+  .result-hero p{font-size:13px !important}
+}
 </style>
 
 <section class="result-hero fade-in">

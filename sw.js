@@ -6,12 +6,13 @@
  *   - HTML sahifalar: Network First (fallback to cache)
  *   - API/POST: Network Only (cache qilmaymiz)
  */
-const CACHE_VERSION = 'vp-v3';
+const CACHE_VERSION = 'vp-v4';
 const STATIC_CACHE  = `${CACHE_VERSION}-static`;
 const PAGES_CACHE   = `${CACHE_VERSION}-pages`;
 
 const STATIC_ASSETS = [
   '/',
+  '/assets/css/app.css?v=4',
   '/assets/images/logo.svg',
   '/assets/images/banner.svg',
   '/assets/images/icon-512.svg',
@@ -53,7 +54,7 @@ self.addEventListener('fetch', e => {
   if (url.pathname.startsWith('/user/test.php')) return;
 
   // Static assets — Cache First
-  if (/\.(?:png|jpg|jpeg|webp|svg|gif|ico|woff2?|ttf|css)$/.test(url.pathname)) {
+  if (/\.(?:png|jpg|jpeg|webp|svg|gif|ico|woff2?|ttf|css|js)$/.test(url.pathname)) {
     e.respondWith(
       caches.match(req).then(cached => cached || fetch(req).then(res => {
         if (res && res.ok) {

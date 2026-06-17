@@ -453,6 +453,73 @@ body{margin:0;padding:0;overflow-x:hidden}
   .auth-form-inner h1{font-size:22px}
   .auth-sub{font-size:13px}
 }
+
+/* ============================================================
+   MOBILE-FIRST OVERRIDES v3.0 — login/register (aggressive)
+   ============================================================ */
+@media (max-width: 880px){
+  .auth-side-form{padding:64px 18px 28px;min-height:100dvh}
+  .auth-form{padding:0}
+  .auth-form-inner{max-width:none;width:100%}
+  .auth-form-inner h1{font-size:clamp(22px, 6vw, 28px);margin-bottom:4px}
+  .auth-sub{font-size:13px;margin-bottom:18px}
+  .auth-brand{margin-bottom:18px}
+  .brand-icon{width:42px;height:42px;font-size:13px;border-radius:10px}
+  .auth-brand strong{font-size:14px}
+  .auth-brand small{font-size:10px}
+  /* Touch-friendly form */
+  .auth-form-inner .form-control,
+  .auth-form-inner input[type="text"],
+  .auth-form-inner input[type="email"],
+  .auth-form-inner input[type="password"],
+  .auth-form-inner input[type="tel"]{
+    min-height:48px;font-size:16px;padding:12px 14px;border-radius:10px;
+  }
+  .btn-auth-primary{min-height:50px;font-size:15px;padding:14px 22px;border-radius:12px}
+  .btn-google-disabled,.g_id_signin > div{min-height:48px}
+  .auth-divider{margin:14px 0;font-size:11px}
+  .auth-mobile-toggle{margin-top:16px;padding-top:16px;font-size:12px}
+  .auth-demo{font-size:10px;padding:7px 10px;margin-top:12px}
+  /* Floating top controls — smaller */
+  .back-home{top:12px;left:12px;padding:7px 12px;font-size:12px;border-radius:100px}
+  .back-home span{display:inline}
+  .auth-lang{top:12px;right:12px;padding:3px}
+  .auth-lang a{padding:5px 10px;font-size:11px}
+}
+
+@media (max-width: 480px){
+  .auth-side-form{padding:56px 14px 20px}
+  .auth-form-inner h1{font-size:22px}
+  .auth-sub{font-size:12px;margin-bottom:14px}
+  .auth-brand{margin-bottom:14px;gap:10px}
+  .brand-icon{width:38px;height:38px;font-size:12px}
+  .auth-brand strong{font-size:13px}
+  .auth-form-inner .form-group{margin-bottom:12px}
+  .auth-form-inner .form-label{font-size:12px;margin-bottom:5px}
+  .form-row{grid-template-columns:1fr !important;gap:0}
+  .auth-mobile-toggle{font-size:12px}
+}
+
+@media (max-width: 360px){
+  .auth-side-form{padding:50px 12px 18px}
+  .auth-form-inner h1{font-size:20px}
+  .back-home span{display:none}
+  .back-home{padding:8px;width:36px;justify-content:center}
+}
+
+/* Disable hover lifts on touch */
+@media (hover:none){
+  .back-home:hover,.auth-lang a:hover,.btn-auth-primary:hover,
+  .btn-auth-ghost:hover,.btn-google-disabled:hover{transform:none !important}
+}
+
+/* Reduce motion on mobile */
+@media (max-width: 880px){
+  .auth-decorative,.auth-shape,.auth-shape-1,.auth-shape-2,.auth-shape-3{
+    animation:none !important;
+  }
+  .auth-form-inner{animation:none}
+}
 </style>
 
 <?php if ($google_client_id): ?>

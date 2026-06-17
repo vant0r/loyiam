@@ -784,6 +784,165 @@ render_header('home');
   .btn-cta-white,.btn-cta-outline-white{width:100%;justify-content:center}
   .cta-features{flex-direction:column;gap:10px}
 }
+
+/* ============================================================
+   MOBILE-FIRST OVERRIDES v3.0 — index.php (aggressive)
+   ============================================================ */
+@media (max-width: 880px){
+  /* Section spacing — drastically tighter */
+  .section{padding:56px 0 40px}
+  .cta-section{padding:32px 0 60px}
+
+  /* Hero v2 */
+  .hero-v2{padding:32px 0 0}
+  .hero-grid{padding:8px 0 56px;gap:24px}
+  .hero-eyebrow{font-size:11px;padding:5px 12px;margin-bottom:16px}
+  .eyebrow-tag{font-size:10px;padding:1px 6px}
+  .hero-title{font-size:clamp(24px, 8vw, 38px);margin-bottom:14px}
+  .hero-subtitle{font-size:14px;line-height:1.6;margin-bottom:22px}
+  .hero-actions{margin-bottom:24px;gap:10px}
+  .btn-cta-primary,.btn-cta-ghost{padding:13px 22px;font-size:14px;border-radius:12px}
+  .hero-trust{gap:10px;flex-wrap:wrap}
+  .trust-avatar{width:30px;height:30px;font-size:11px;border-width:2px;margin-left:-7px}
+  .trust-stars{font-size:13px}
+  .trust-label{font-size:12px}
+
+  /* Hero mockup */
+  .hero-mockup{max-width:300px}
+  .mockup-q-text{font-size:12px}
+  .mockup-answer{padding:7px 10px;font-size:11px}
+  .mockup-letter{width:18px;height:18px;font-size:9px}
+
+  /* Hero stats strip */
+  .hero-stats-v2{padding:16px 12px;margin:0 16px -32px;border-radius:18px;gap:6px}
+  .stat-pill{min-width:0;flex:1}
+  .stat-pill .stat-num{font-size:22px}
+  .stat-pill .stat-label{font-size:9px;margin-top:4px;letter-spacing:0}
+  .stat-divider{display:none}
+
+  /* Section heads */
+  .section-head{margin-bottom:36px}
+  .section-title-v2{font-size:clamp(22px, 6vw, 32px);margin:6px 0 10px}
+  .section-sub{font-size:14px}
+  .eyebrow{font-size:11px}
+
+  /* Features */
+  .features-grid{grid-template-columns:1fr;gap:14px}
+  .feature-card{padding:24px 20px;border-radius:18px}
+  .feature-icon-wrap{width:52px;height:52px;border-radius:12px;margin-bottom:14px}
+  .feature-card h3{font-size:17px}
+  .feature-card p{font-size:13px;margin-bottom:14px}
+  .feature-link{font-size:13px}
+
+  /* Steps timeline */
+  .steps-timeline{grid-template-columns:1fr;gap:20px;max-width:460px;margin:0 auto}
+  .step-item{padding:0 16px}
+  .step-bubble{width:64px;height:64px;margin-bottom:14px}
+  .step-bubble-num{width:22px;height:22px;font-size:11px}
+  .step-item h3{font-size:15px}
+  .step-item p{font-size:12px}
+  .step-connector{display:none !important}
+
+  /* Pricing */
+  .pricing-grid{grid-template-columns:1fr;gap:14px;max-width:420px}
+  .pricing-v2{padding:28px 22px 24px;border-radius:18px}
+  .pricing-v2.is-popular{transform:none !important;margin-top:14px}
+  .pricing-v2.is-popular:hover{transform:translateY(-4px) !important}
+  .pricing-popular-badge{font-size:10px;padding:5px 12px;top:-12px}
+  .pricing-header h3{font-size:20px}
+  .pricing-header p{font-size:12px;min-height:auto}
+  .pricing-price-v2{padding:14px 0;margin-bottom:18px}
+  .price-value{font-size:34px}
+  .price-free{font-size:26px}
+  .pricing-features-v2 li{font-size:13px;gap:8px}
+  .feature-check{width:18px;height:18px}
+  .pricing-cta{padding:13px 18px;font-size:14px;min-height:46px}
+
+  /* Testimonials */
+  .testimonials-wrap{padding:0 12px}
+  .testimonials-track{gap:12px;padding:14px 4px}
+  .testimonial-card{flex:0 0 calc(100% - 8px);padding:24px 20px;border-radius:16px}
+  .testimonial-quote{font-size:60px;top:10px;right:18px}
+  .testimonial-text{font-size:14px;min-height:auto;margin-bottom:18px}
+  .testimonial-avatar{width:38px;height:38px;font-size:14px}
+  .testimonial-name{font-size:13px}
+  .testimonial-meta{font-size:11px}
+  .testimonial-arrow{display:none !important}
+  .t-dot{width:6px;height:6px}
+  .t-dot.active{width:24px}
+
+  /* Blog */
+  .blog-grid-v2{grid-template-columns:1fr;gap:14px}
+  .blog-card-v2{border-radius:16px}
+  .blog-card-content{padding:18px}
+  .blog-card-content h3{font-size:16px}
+  .blog-card-content p{font-size:12px;margin-bottom:12px}
+  .blog-card-meta{font-size:11px;padding-top:10px}
+  .blog-card-category{font-size:10px;padding:4px 9px}
+
+  /* CTA */
+  .cta-card{padding:36px 20px;border-radius:20px}
+  .cta-eyebrow{font-size:12px;padding:5px 14px;margin-bottom:16px}
+  .cta-title{font-size:clamp(22px, 6vw, 32px);margin-bottom:10px}
+  .cta-subtitle{font-size:14px;margin-bottom:24px}
+  .cta-actions{margin-bottom:22px;gap:8px}
+  .btn-cta-white,.btn-cta-outline-white{padding:13px 22px;font-size:14px;width:100%;justify-content:center;border-radius:12px}
+  .cta-features{font-size:12px;gap:8px}
+}
+
+@media (max-width: 480px){
+  .section{padding:42px 0 30px}
+  .hero-v2{padding:20px 0 0}
+  .hero-grid{padding:0 0 44px;gap:18px}
+  .hero-title{font-size:clamp(22px, 8vw, 30px)}
+  .hero-subtitle{font-size:13px;margin-bottom:18px}
+  .hero-stats-v2{padding:14px 10px;margin:0 12px -28px}
+  .stat-pill .stat-num{font-size:18px}
+  .stat-pill .stat-label{font-size:9px}
+  .feature-card{padding:20px 16px}
+  .feature-icon-wrap{width:46px;height:46px}
+  .pricing-v2{padding:24px 18px 22px}
+  .price-value{font-size:30px}
+  .testimonial-card{padding:20px 16px}
+  .blog-card-content{padding:14px}
+  .cta-card{padding:28px 16px}
+  .cta-features{flex-direction:column;align-items:flex-start;gap:6px}
+}
+
+@media (max-width: 360px){
+  .section-title-v2{font-size:20px}
+  .section-sub{font-size:13px}
+  .hero-title{font-size:22px}
+  .pricing-v2{padding:20px 14px}
+  .price-value{font-size:26px}
+  .feature-card{padding:18px 14px}
+  .feature-card h3{font-size:16px}
+  .feature-card p{font-size:12px}
+}
+
+/* Disable hover lifts on touch devices */
+@media (hover:none){
+  .feature-card:hover,.pricing-v2:hover,.blog-card-v2:hover,
+  .testimonial-card:hover,.step-item:hover .step-bubble,
+  .btn-cta-primary:hover,.btn-cta-ghost:hover,.btn-cta-white:hover,
+  .pricing-cta:hover{transform:none !important}
+  .feature-card:hover .feature-icon-wrap{transform:none !important}
+  .blog-card-v2:hover .blog-card-image img{transform:none}
+  .feature-card::before{display:none}
+}
+
+/* Reduce shadow blur on mobile (perf) */
+@media (max-width: 768px){
+  .feature-card,.pricing-v2,.blog-card-v2,.testimonial-card,.cta-card{
+    box-shadow:0 4px 12px rgba(15,23,42,.06) !important;
+  }
+  .feature-card:hover,.pricing-v2:hover,.blog-card-v2:hover,.testimonial-card:hover{
+    box-shadow:0 8px 20px rgba(15,23,42,.08) !important;
+  }
+  /* Disable expensive blur backgrounds */
+  .pricing-glow{display:none}
+  .cta-bg-pattern{opacity:.6}
+}
 </style>
 
 <script>
