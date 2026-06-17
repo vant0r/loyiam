@@ -33,11 +33,11 @@ render_head(t('blog'));
 render_header('blog');
 ?>
 
-<section class="hero" style="padding:60px 0 40px">
-  <div class="container text-center" style="position:relative;z-index:1">
-    <div class="eyebrow"><?= t('blog') ?></div>
-    <h1 style="margin:14px 0;font-size:48px"><?= lang()==='uz_cyrillic' ? "Фойдали мақолалар" : "Foydali maqolalar" ?></h1>
-    <p style="color:var(--text-soft);font-size:17px;max-width:600px;margin:0 auto"><?= lang()==='uz_cyrillic' ? "Маслаҳатлар, янгиликлар ва қўлланмалар" : "Maslahatlar, yangiliklar va qo'llanmalar" ?></p>
+<section style="padding:60px 0 32px;background:linear-gradient(180deg, var(--bg-soft), #fff)">
+  <div class="container text-center" style="position:relative;z-index:1;max-width:720px">
+    <div class="eyebrow"><?= icon('document', 12) ?> <?= t('blog') ?></div>
+    <h1 style="margin:14px 0;font-size:clamp(28px, 4vw, 44px);font-weight:800;letter-spacing:-.02em;line-height:1.15"><?= lang()==='uz_cyrillic' ? "Фойдали мақолалар" : "Foydali maqolalar" ?></h1>
+    <p style="color:var(--text-soft);font-size:clamp(15px, 1.4vw, 17px);line-height:1.65;max-width:600px;margin:0 auto"><?= lang()==='uz_cyrillic' ? "Маслаҳатлар, янгиликлар ва қўлланмалар" : "Maslahatlar, yangiliklar va qo'llanmalar" ?></p>
   </div>
 </section>
 
@@ -46,23 +46,26 @@ render_header('blog');
 
     <!-- Featured post -->
     <?php if ($featured): ?>
-    <a href="/blog-post.php?slug=<?= e($featured['slug']) ?>" class="card card-hover mb-4" style="display:grid;grid-template-columns:1.4fr 1fr;gap:0;padding:0;overflow:hidden;text-decoration:none;color:inherit">
-      <div style="aspect-ratio:16/9;background:linear-gradient(135deg,var(--primary),var(--secondary));display:flex;align-items:center;justify-content:center;font-size:80px;color:#fff">
+    <a href="/blog-post.php?slug=<?= e($featured['slug']) ?>" class="card card-hover mb-4" style="display:grid;grid-template-columns:1.2fr 1fr;gap:0;padding:0;overflow:hidden;text-decoration:none;color:inherit;border-radius:20px">
+      <div style="aspect-ratio:16/10;background:linear-gradient(135deg,var(--primary),var(--accent-violet),var(--accent-pink));display:flex;align-items:center;justify-content:center;color:#fff;position:relative;overflow:hidden">
         <?php if (!empty($featured['image'])): ?>
           <img src="<?= e($featured['image']) ?>" style="width:100%;height:100%;object-fit:cover">
-        <?php else: ?>📰<?php endif; ?>
+        <?php else: ?>
+          <?= icon('document', 80) ?>
+        <?php endif; ?>
       </div>
       <div style="padding:32px;display:flex;flex-direction:column;justify-content:center">
         <div class="flex gap-2 mb-2 items-center">
-          <span class="badge badge-info">⭐ <?= lang()==='uz_cyrillic' ? "Машҳур" : "Mashhur" ?></span>
+          <span class="badge-soft warning"><?= icon('star', 10) ?> <?= lang()==='uz_cyrillic' ? "Машҳур" : "Mashhur" ?></span>
           <?php if (!empty($featured['category'])): ?>
-            <span class="badge badge-mute"><?= e($featured['category']) ?></span>
+            <span class="badge-soft mute"><?= e($featured['category']) ?></span>
           <?php endif; ?>
         </div>
-        <h2 style="font-size:24px;line-height:1.3;margin-bottom:12px"><?= e($featured['title_'.$lang_field]) ?></h2>
-        <p style="color:var(--text-soft);font-size:14px;line-height:1.6;margin-bottom:14px"><?= e(mb_substr($featured['excerpt_'.$lang_field] ?? '', 0, 140)) ?>...</p>
+        <h2 style="font-size:24px;line-height:1.3;margin-bottom:12px;font-weight:800;letter-spacing:-.015em"><?= e($featured['title_'.$lang_field]) ?></h2>
+        <p style="color:var(--text-soft);font-size:14px;line-height:1.65;margin-bottom:14px"><?= e(mb_substr($featured['excerpt_'.$lang_field] ?? '', 0, 140)) ?>...</p>
         <div class="flex items-center gap-3" style="font-size:13px;color:var(--text-mute)">
           <span><?= icon('calendar', 14) ?> <?= date('d.m.Y', strtotime($featured['created_at'])) ?></span>
+          <span class="activity-meta-dot"></span>
           <span><?= icon('eye', 14) ?> <?= (int)$featured['views'] ?></span>
         </div>
       </div>
@@ -97,10 +100,13 @@ render_header('blog');
 
     <!-- Posts -->
     <?php if (empty($posts)): ?>
-      <div class="card text-center" style="padding:60px">
-        <?= icon('document', 64) ?>
-        <h3 style="margin-top:14px"><?= lang()==='uz_cyrillic' ? 'Мақолалар топилмади' : 'Maqolalar topilmadi' ?></h3>
-        <p class="text-soft"><?= lang()==='uz_cyrillic' ? 'Қидирув шартларини ўзгартириб қайта уриниб кўринг' : 'Qidiruv shartlarini o\'zgartirib qayta urinib ko\'ring' ?></p>
+      <div class="empty-state-v2">
+        <div class="empty-state-v2-icon"><?= icon('document', 32) ?></div>
+        <h3><?= lang()==='uz_cyrillic' ? "Мақолалар топилмади" : "Maqolalar topilmadi" ?></h3>
+        <p><?= lang()==='uz_cyrillic' ? "Қидирув шартларини ўзгартириб қайта уриниб кўринг" : "Qidiruv shartlarini o'zgartirib qayta urinib ko'ring" ?></p>
+        <?php if ($search || $category): ?>
+          <a href="/blog.php" class="btn btn-primary btn-sm"><?= icon('refresh', 14) ?> <?= lang()==='uz_cyrillic' ? "Барчасини кўриш" : "Barchasini ko'rish" ?></a>
+        <?php endif; ?>
       </div>
     <?php else: ?>
     <div class="grid-3 stagger">
@@ -108,23 +114,26 @@ render_header('blog');
         $words = str_word_count(strip_tags($p['content_'.$lang_field] ?? ''));
         $rt = max(1, round($words / 200));
       ?>
-      <a href="/blog-post.php?slug=<?= e($p['slug']) ?>" class="card card-hover" style="padding:0;overflow:hidden;text-decoration:none;color:inherit;display:block">
-        <div style="aspect-ratio:16/9;background:linear-gradient(135deg,var(--primary-light),#fff);display:flex;align-items:center;justify-content:center;font-size:48px;color:var(--primary);position:relative">
+      <a href="/blog-post.php?slug=<?= e($p['slug']) ?>" class="card card-hover" style="padding:0;overflow:hidden;text-decoration:none;color:inherit;display:block;border-radius:16px">
+        <div style="aspect-ratio:16/9;background:linear-gradient(135deg,var(--primary-light),#fff);display:flex;align-items:center;justify-content:center;color:var(--primary);position:relative;overflow:hidden">
           <?php if (!empty($p['image'])): ?>
             <img src="<?= e($p['image']) ?>" alt="" style="width:100%;height:100%;object-fit:cover">
-          <?php else: ?>📰<?php endif; ?>
+          <?php else: ?>
+            <?= icon('document', 48) ?>
+          <?php endif; ?>
           <?php if (!empty($p['category'])): ?>
-            <span class="badge badge-info" style="position:absolute;top:12px;left:12px;background:rgba(255,255,255,.95);color:var(--primary)"><?= e($p['category']) ?></span>
+            <span class="badge-soft info" style="position:absolute;top:12px;left:12px;background:rgba(255,255,255,.95);color:var(--primary);backdrop-filter:blur(8px)"><?= e($p['category']) ?></span>
           <?php endif; ?>
         </div>
-        <div style="padding:22px">
-          <h3 style="font-size:17px;font-weight:700;margin-bottom:8px;line-height:1.4"><?= e($p['title_'.$lang_field]) ?></h3>
-          <p style="color:var(--text-soft);font-size:14px;line-height:1.6;margin-bottom:14px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">
+        <div style="padding:20px">
+          <h3 style="font-size:16px;font-weight:700;margin-bottom:8px;line-height:1.4;letter-spacing:-.005em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden"><?= e($p['title_'.$lang_field]) ?></h3>
+          <p class="text-soft" style="font-size:13.5px;line-height:1.6;margin-bottom:14px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">
             <?= e($p['excerpt_'.$lang_field]) ?>
           </p>
-          <div class="flex justify-between items-center" style="font-size:12px;color:var(--text-mute)">
-            <div class="flex gap-2">
+          <div class="flex justify-between items-center" style="font-size:11.5px;color:var(--text-mute)">
+            <div class="flex gap-2 items-center">
               <span><?= icon('calendar', 12) ?> <?= date('d.m.Y', strtotime($p['created_at'])) ?></span>
+              <span class="activity-meta-dot"></span>
               <span><?= icon('clock', 12) ?> <?= $rt ?> <?= t('min_read') ?></span>
             </div>
             <span><?= icon('eye', 12) ?> <?= (int)$p['views'] ?></span>

@@ -24,131 +24,141 @@ $tickets = db()->fetchAll("SELECT * FROM tickets WHERE status='active' ORDER BY 
 
 render_head(t('tests'));
 ?>
+<?php
+// Color rotation for tickets (visible variety)
+$ticket_palettes = ['', 'violet', 'cyan', 'amber', 'emerald', 'rose', 'indigo'];
+?>
 <div class="layout">
 <?php render_sidebar('user', 'tests'); ?>
 <main class="main">
-  <div class="page-header">
+
+  <div class="page-header-modern">
     <div>
-      <div class="page-title"><?= icon('document', 28) ?> <?= t('tests') ?></div>
-      <div class="page-subtitle"><?= lang()==='uz_cyrillic' ? 'Билет танлаб тестни бошланг' : 'Bilet tanlab testni boshlang' ?></div>
+      <div class="page-eyebrow"><?= icon('document', 12) ?> <?= lang()==='uz_cyrillic' ? "Имтиҳон тайёрлов" : "Imtihon tayyorlov" ?></div>
+      <h1><?= t('tests') ?></h1>
+      <div class="page-subtitle"><?= lang()==='uz_cyrillic' ? "Билет танлаб тестни бошланг" : "Bilet tanlab testni boshlang" ?></div>
     </div>
+    <a href="/user/natijalar.php" class="btn btn-light btn-sm"><?= icon('chart', 14) ?> <?= t('results') ?></a>
   </div>
 
-  <!-- Davom etayotganlar -->
+  <!-- In progress -->
   <?php if (!empty($inprogress)): ?>
-  <div class="card mb-3" style="border-left:4px solid var(--warning)">
-    <h3 style="font-size:18px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:10px">
-      <?= icon('clock', 22) ?> <?= lang()==='uz_cyrillic' ? "Давом этаётган тестлар" : "Davom etayotgan testlar" ?>
-    </h3>
-    <div class="grid-3">
-      <?php foreach ($inprogress as $r):
-        $elapsed = time() - strtotime($r['started_at']);
-        $remaining = max(0, ($r['time_minutes'] * 60) - $elapsed);
-        $isExpired = $remaining <= 0;
-      ?>
-      <div class="card card-hover" style="background:var(--bg-soft);padding:18px">
-        <div class="flex justify-between items-start mb-2">
-          <strong><?= e($r['title'] ?? '—') ?></strong>
-          <span class="badge badge-<?= $isExpired?'danger':'warning' ?>">
-            <?= $isExpired ? t('time_up') : t('in_progress') ?>
-          </span>
-        </div>
-        <div style="font-size:13px;color:var(--text-soft);margin-bottom:12px">
-          <?= date('d.m.Y H:i', strtotime($r['started_at'])) ?>
-        </div>
-        <a href="/user/test.php?attempt=<?= $r['id'] ?>" class="btn btn-primary btn-sm btn-block">
-          <?= icon('play', 14) ?> <?= t('continue_test') ?>
-        </a>
+  <div class="section-card mb-3" style="border-left:3px solid var(--warning)">
+    <div class="section-card-head">
+      <div class="section-card-title"><?= icon('clock', 16) ?> <?= lang()==='uz_cyrillic' ? "Давом этаётган тестлар" : "Davom etayotgan testlar" ?> <span class="count-pill"><?= count($inprogress) ?></span></div>
+    </div>
+    <div class="section-card-body" style="padding:14px">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(min(260px, 100%), 1fr));gap:12px">
+        <?php foreach ($inprogress as $r):
+          $elapsed = time() - strtotime($r['started_at']);
+          $remaining = max(0, ($r['time_minutes'] * 60) - $elapsed);
+          $isExpired = $remaining <= 0;
+          $rem_min = floor($remaining/60); $rem_sec = $remaining%60;
+        ?>
+          <div class="ticket-card amber" style="border-left:none">
+            <div class="ticket-card-head">
+              <div class="ticket-card-icon"><?= icon('clock', 18) ?></div>
+              <span class="badge-soft <?= $isExpired?'danger':'warning' ?>"><?= $isExpired ? t('time_up') : t('in_progress') ?></span>
+            </div>
+            <div>
+              <h3 class="ticket-card-title"><?= e($r['title'] ?? '—') ?></h3>
+              <div class="ticket-card-meta">
+                <span><?= icon('calendar', 12) ?> <?= date('d.m H:i', strtotime($r['started_at'])) ?></span>
+                <?php if (!$isExpired): ?>
+                  <span><?= icon('clock', 12) ?> <?= $rem_min ?>:<?= str_pad($rem_sec,2,'0',STR_PAD_LEFT) ?></span>
+                <?php endif; ?>
+              </div>
+            </div>
+            <a href="/user/test.php?attempt=<?= $r['id'] ?>" class="btn btn-primary btn-sm btn-block"><?= icon('play', 14) ?> <?= t('continue_test') ?></a>
+          </div>
+        <?php endforeach; ?>
       </div>
-      <?php endforeach; ?>
     </div>
   </div>
   <?php endif; ?>
 
-  <!-- Yangi test boshlash -->
-  <div class="card mb-3">
-    <h3 style="font-size:18px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:10px">
-      <?= icon('plus', 22) ?> <?= t('start_test') ?>
-    </h3>
-    <?php if (empty($tickets)): ?>
-      <div class="empty-state">
-        <?= icon('ticket', 64) ?>
-        <h3><?= lang()==='uz_cyrillic' ? 'Билетлар йўқ' : 'Biletlar yo\'q' ?></h3>
-        <p><?= lang()==='uz_cyrillic' ? 'Админ кейинроқ билетларни қўшади' : 'Admin keyinroq biletlarni qo\'shadi' ?></p>
-      </div>
-    <?php else: ?>
-    <div class="grid-4 stagger">
-      <?php foreach ($tickets as $tk): ?>
-      <a href="/user/test.php?ticket=<?= $tk['id'] ?>" class="card card-hover" style="text-align:center;padding:24px;text-decoration:none;color:inherit;display:block">
-        <div style="width:56px;height:56px;background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;
-                    border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px">
-          <?= icon('ticket', 28) ?>
-        </div>
-        <div style="font-weight:700;font-size:16px;margin-bottom:4px"><?= e($tk['title_'.$lang_field]) ?></div>
-        <div style="color:var(--text-soft);font-size:12px">
-          <?= $tk['questions_count'] ?> <?= lang()==='uz_cyrillic' ? 'савол' : 'savol' ?>
-          ·
-          <?= $tk['time_minutes'] ?> <?= t('minutes') ?>
-        </div>
-      </a>
-      <?php endforeach; ?>
+  <!-- Available tickets -->
+  <div class="section-card mb-3">
+    <div class="section-card-head">
+      <div class="section-card-title"><?= icon('ticket', 16) ?> <?= lang()==='uz_cyrillic' ? "Мавжуд билетлар" : "Mavjud biletlar" ?> <span class="count-pill"><?= count($tickets) ?></span></div>
+      <span class="text-mute" style="font-size:12px"><?= lang()==='uz_cyrillic' ? "Билет устида босинг" : "Bilet ustida bosing" ?></span>
     </div>
-    <?php endif; ?>
+    <div class="section-card-body" style="padding:16px">
+      <?php if (empty($tickets)): ?>
+        <div class="empty-state-v2">
+          <div class="empty-state-v2-icon"><?= icon('ticket', 32) ?></div>
+          <h3><?= lang()==='uz_cyrillic' ? "Билетлар йўқ" : "Biletlar yo'q" ?></h3>
+          <p><?= lang()==='uz_cyrillic' ? "Админ кейинроқ билетларни қўшади" : "Admin keyinroq biletlarni qo'shadi" ?></p>
+        </div>
+      <?php else: ?>
+        <div class="stagger" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(min(220px, 100%), 1fr));gap:14px">
+          <?php foreach ($tickets as $i => $tk): $palette = $ticket_palettes[$i % count($ticket_palettes)]; ?>
+            <a href="/user/test.php?ticket=<?= $tk['id'] ?>" class="ticket-card <?= $palette ?>">
+              <div class="ticket-card-head">
+                <div class="ticket-card-icon"><?= icon('ticket', 22) ?></div>
+                <span class="text-mute" style="font-size:11px;font-weight:700">#<?= $tk['ticket_number'] ?></span>
+              </div>
+              <h3 class="ticket-card-title"><?= e($tk['title_'.$lang_field]) ?></h3>
+              <div class="ticket-card-meta">
+                <span><?= icon('help', 12) ?> <?= $tk['questions_count'] ?> <?= lang()==='uz_cyrillic' ? "савол" : "savol" ?></span>
+                <span><?= icon('clock', 12) ?> <?= $tk['time_minutes'] ?> <?= t('minutes') ?></span>
+              </div>
+              <div class="ticket-card-cta">
+                <span><?= icon('play', 14) ?> <?= t('start_test') ?></span>
+                <?= icon('arrow-right', 14) ?>
+              </div>
+            </a>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+    </div>
   </div>
 
-  <!-- Tugallanganlar -->
-  <div class="card" style="padding:0">
-    <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
-      <h3 style="font-size:18px;font-weight:700;display:flex;align-items:center;gap:10px">
-        <?= icon('check-circle', 22) ?> <?= lang()==='uz_cyrillic' ? "Тугалланган тестлар" : "Tugallangan testlar" ?>
-      </h3>
-      <span class="badge badge-info"><?= count($completed) ?></span>
+  <!-- Completed -->
+  <div class="section-card">
+    <div class="section-card-head">
+      <div class="section-card-title"><?= icon('check-circle', 16) ?> <?= lang()==='uz_cyrillic' ? "Тугалланган тестлар" : "Tugallangan testlar" ?> <span class="count-pill"><?= count($completed) ?></span></div>
+      <a href="/user/natijalar.php" class="chip"><?= t('view_all') ?> →</a>
     </div>
-    <?php if (empty($completed)): ?>
-      <div class="empty-state">
-        <?= icon('document', 64) ?>
-        <h3><?= t('no_tests') ?></h3>
-        <p><?= t('first_test') ?></p>
-      </div>
-    <?php else: ?>
-    <div class="table-wrap table-flat">
-      <table>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th><?= lang()==='uz_cyrillic' ? 'Билет' : 'Bilet' ?></th>
-            <th><?= t('date') ?></th>
-            <th><?= lang()==='uz_cyrillic' ? 'Балл' : 'Ball' ?></th>
-            <th>%</th>
-            <th><?= t('actions') ?></th>
-          </tr>
-        </thead>
-        <tbody>
-          <?php foreach ($completed as $i => $r): ?>
-          <tr>
-            <td><?= $i+1 ?></td>
-            <td><strong><?= e($r['title'] ?? '—') ?></strong></td>
-            <td><?= date('d.m.Y H:i', strtotime($r['finished_at'] ?? $r['started_at'])) ?></td>
-            <td><strong><?= $r['correct_answers'] ?>/<?= $r['total_questions'] ?></strong></td>
-            <td>
-              <?php
-                $p = (float)$r['score_percent'];
-                $cls = $p>=80?'success':($p>=50?'warning':'danger');
-              ?>
-              <span class="badge badge-<?= $cls ?>"><?= $p ?>%</span>
-            </td>
-            <td>
-              <a href="/user/test-result.php?attempt=<?= $r['id'] ?>" class="btn btn-light btn-sm">
-                <?= icon('eye', 14) ?> <?= t('view_details') ?>
-              </a>
-            </td>
-          </tr>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
+    <div class="section-card-body" style="padding:14px">
+      <?php if (empty($completed)): ?>
+        <div class="empty-state-v2">
+          <div class="empty-state-v2-icon"><?= icon('document', 32) ?></div>
+          <h3><?= t('no_tests') ?></h3>
+          <p><?= t('first_test') ?></p>
+        </div>
+      <?php else: foreach (array_slice($completed, 0, 10) as $r):
+        $p = (float)$r['score_percent'];
+        $cls = $p>=80?'success':($p>=50?'warning':'danger');
+        $circ = 2 * M_PI * 20;
+      ?>
+        <a href="/user/test-result.php?attempt=<?= $r['id'] ?>" class="result-card-modern">
+          <div class="progress-circle" style="--pc-pct:<?= $p/100 ?>;--pc-color:var(--<?= $cls ?>);--pc-circ:<?= round($circ,2) ?>;width:48px;height:48px">
+            <svg viewBox="0 0 48 48">
+              <circle class="pc-track" cx="24" cy="24" r="20"/>
+              <circle class="pc-fill" cx="24" cy="24" r="20"/>
+            </svg>
+            <div class="pc-text"><?= round($p) ?></div>
+          </div>
+          <div class="result-body-modern">
+            <div class="result-title-modern">
+              <?= e($r['title'] ?? '—') ?>
+              <span class="badge-soft <?= $cls ?>"><?= round($p,1) ?>%</span>
+            </div>
+            <div class="result-meta-modern">
+              <span><?= icon('calendar', 12) ?> <?= date('d.m.Y H:i', strtotime($r['finished_at'] ?? $r['started_at'])) ?></span>
+              <span class="activity-meta-dot"></span>
+              <span><?= $r['correct_answers'] ?>/<?= $r['total_questions'] ?></span>
+            </div>
+          </div>
+          <span class="data-cell-actions">
+            <span class="btn btn-light btn-sm btn-icon"><?= icon('arrow-right', 14) ?></span>
+          </span>
+        </a>
+      <?php endforeach; endif; ?>
     </div>
-    <?php endif; ?>
   </div>
+
 </main>
 </div>
 </body></html>
