@@ -75,10 +75,178 @@ if (!function_exists('setting')) {
         }
         return $cache[$key] ?? $default;
     }
-    function flush_settings_cache(): void {
-        @unlink(__DIR__ . '/../cache/data/settings.json');
-    }
+/**
+ * Panel sahifalari uchun shared CSS (admin/user sidebar layout).
+ * Har sahifa bu STRING'ni o'z <style> ichiga inline qiladi.
+ */
+function panel_css(): string {
+    return <<<'CSS'
+/* === PANEL CHROME (sidebar + main layout) === */
+.layout{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+.sidebar{
+  background:linear-gradient(180deg,#0B1220 0%,#0F172A 50%,#131F35 100%);
+  color:#CBD5E1;position:sticky;top:0;height:100vh;overflow-y:auto;padding:18px 0;
+  display:flex;flex-direction:column;
 }
+.sidebar-logo{padding:0 18px 14px;border-bottom:1px solid rgba(255,255,255,.08);
+  margin-bottom:10px;display:flex;align-items:center;gap:10px;color:#fff;font-weight:700}
+.sidebar-logo .li{width:36px;height:36px;background:linear-gradient(135deg,#3B82F6,#1E40AF);border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:13px}
+.sidebar-menu{list-style:none;padding:6px 10px;flex:1;margin:0}
+.sidebar-menu li{margin-bottom:2px}
+.sidebar-menu a{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:8px;
+  color:#94A3B8;font-size:13.5px;font-weight:500;transition:all .15s;text-decoration:none}
+.sidebar-menu a:hover{background:rgba(255,255,255,.05);color:#fff}
+.sidebar-menu a.active{background:#3B82F6;color:#fff;box-shadow:0 4px 14px rgba(59,130,246,.4)}
+.sidebar-bottom{padding:10px 10px;border-top:1px solid rgba(255,255,255,.08)}
+.sidebar-user{padding:10px 12px;background:rgba(255,255,255,.04);border-radius:8px;
+  display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.sidebar-user-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#3B82F6,#1E40AF);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0}
+.sidebar-user-info{flex:1;overflow:hidden;min-width:0}
+.sidebar-user-name{color:#fff;font-size:13px;font-weight:600;text-overflow:ellipsis;overflow:hidden;white-space:nowrap}
+.sidebar-user-role{color:#94A3B8;font-size:11px}
+.sidebar-link{display:flex;align-items:center;gap:10px;padding:9px 12px;color:#94A3B8;font-size:12.5px;border-radius:6px;text-decoration:none}
+.sidebar-link:hover{background:rgba(255,255,255,.05);color:#fff}
+.sidebar-link.danger{color:#FCA5A5}
+
+.main{padding:22px 28px;background:var(--bg-soft);overflow-x:auto;min-width:0}
+.page-header-modern{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:14px;padding-bottom:18px;margin-bottom:22px;border-bottom:1px solid #EEF1F5}
+.page-eyebrow{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-mute);margin-bottom:6px;display:inline-flex;align-items:center;gap:6px}
+.page-header-modern h1{font-size:clamp(22px,2.4vw,30px);font-weight:800;letter-spacing:-.02em;margin:0;color:var(--text);line-height:1.15}
+.page-subtitle{font-size:14px;color:var(--text-soft);margin-top:6px}
+.page-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+/* Mobile sidebar toggle */
+.sidebar-toggle-btn{
+  display:none;position:fixed;top:14px;left:14px;
+  width:42px;height:42px;align-items:center;justify-content:center;
+  border-radius:8px;background:#fff;color:var(--text);
+  border:1px solid var(--border);box-shadow:var(--shadow-sm);
+  z-index:1001;cursor:pointer;
+}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);backdrop-filter:blur(4px);z-index:999;cursor:pointer}
+
+@media (max-width:992px){
+  .layout{grid-template-columns:1fr}
+  .sidebar{position:fixed;left:-100%;top:0;width:min(86vw,300px);z-index:1000;transition:left .3s;box-shadow:8px 0 32px rgba(15,23,42,.2)}
+  .sidebar.open{left:0}
+  .sidebar.open ~ .sidebar-overlay{display:block}
+  .sidebar-toggle-btn{display:inline-flex}
+  .main{padding:60px 16px 16px}
+}
+
+/* Bottom nav (mobile) */
+.bottom-nav{
+  position:fixed;bottom:0;left:0;right:0;display:none;
+  background:rgba(255,255,255,.96);backdrop-filter:blur(20px);
+  border-top:1px solid var(--border);
+  padding:6px 4px;padding-bottom:max(6px,env(safe-area-inset-bottom));
+  z-index:50;justify-content:space-around;
+}
+.bottom-nav a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;flex:1;min-height:54px;padding:6px 4px;color:var(--text-mute);font-size:10px;font-weight:500;border-radius:6px;text-decoration:none}
+.bottom-nav a.active{color:var(--primary);background:var(--primary-light)}
+@media (max-width:880px){.bottom-nav.show{display:flex}body.has-bn{padding-bottom:72px}}
+CSS;
+}
+
+/**
+ * Panel sidebar HTML render qiladi (string qaytaradi)
+ * @param string $type 'user'|'admin'|'developer'
+ * @param string $active aktiv menyu kaliti
+ */
+function panel_sidebar(string $type, string $active): string {
+    $u = current_user();
+    $items = [];
+    if ($type === 'user') {
+        $items = [
+            ['dashboard','/user/',           'dashboard',  t('dashboard')],
+            ['tests',    '/user/testlar.php','document',   t('tests')],
+            ['results',  '/user/natijalar.php','chart',    t('results')],
+            ['rating',   '/user/reyting.php','trophy',     t('rating')],
+            ['profile',  '/user/profil.php', 'user',       t('profile')],
+            ['tariffs',  '/user/tariflar.php','gem',       t('tariffs')],
+            ['referrals','/user/referallar.php','gift',    t('referrals')],
+        ];
+    } elseif ($type === 'admin') {
+        $items = [
+            ['dashboard','/admin/',           'dashboard', t('dashboard')],
+            ['users',    '/admin/users.php', 'users',     t('users')],
+            ['questions','/admin/savollar.php','help',    t('questions')],
+            ['tickets',  '/admin/biletlar.php','ticket',  t('tickets')],
+            ['payments', '/admin/tolovlar.php','card',    t('payments')],
+            ['tariffs',  '/admin/tariflar.php','gem',     t('tariffs')],
+            ['blog',     '/admin/blog.php',  'edit',      t('blog')],
+            ['reviews',  '/admin/sharhlar.php','star',    t('reviews')],
+            ['logs',     '/admin/loglar.php','logs',      t('logs')],
+            ['settings', '/admin/sozlamalar.php','settings',t('settings')],
+        ];
+    } elseif ($type === 'developer') {
+        $items = [
+            ['dashboard','/developer/','dashboard','Dashboard'],
+        ];
+    }
+    $logo_text = lang()==='uz_cyrillic' ? 'ВП' : 'VP';
+    $first_letter = $u ? mb_strtoupper(mb_substr($u['first_name'],0,1)) : '?';
+
+    ob_start();
+    ?>
+<aside class="sidebar" id="appSidebar">
+  <div class="sidebar-logo"><span class="li"><?= e($logo_text) ?></span><span><?= e(setting('site_name', SITE_NAME)) ?></span></div>
+  <ul class="sidebar-menu">
+    <?php foreach ($items as $it): ?>
+      <li><a href="<?= e($it[1]) ?>" class="<?= $active===$it[0]?'active':'' ?>"><?= icon($it[2], 17) ?> <span><?= e($it[3]) ?></span></a></li>
+    <?php endforeach; ?>
+  </ul>
+  <div class="sidebar-bottom">
+    <?php if ($u): ?>
+    <div class="sidebar-user">
+      <div class="sidebar-user-avatar"><?= $first_letter ?></div>
+      <div class="sidebar-user-info">
+        <div class="sidebar-user-name"><?= e($u['first_name'].' '.$u['last_name']) ?></div>
+        <div class="sidebar-user-role"><?= e($u['role']) ?></div>
+      </div>
+    </div>
+    <?php endif; ?>
+    <a href="/" class="sidebar-link"><?= icon('home', 14) ?> <?= t('home') ?></a>
+    <form method="post" action="/logout.php" style="margin:0">
+      <?= csrf_field() ?>
+      <button type="submit" class="sidebar-link danger" style="width:100%;text-align:left;background:none;border:none;cursor:pointer;font-family:inherit"><?= icon('logout', 14) ?> <?= t('logout') ?></button>
+    </form>
+  </div>
+</aside>
+<div class="sidebar-overlay" onclick="document.getElementById('appSidebar').classList.remove('open')"></div>
+<button type="button" class="sidebar-toggle-btn" onclick="document.getElementById('appSidebar').classList.toggle('open')" aria-label="Menu"><?= icon('menu', 20) ?></button>
+<?php
+    return ob_get_clean();
+}
+
+/**
+ * Panel JS — sidebar toggle, modal, toast helperlar (string qaytaradi)
+ */
+function panel_js(): string {
+    return <<<'JS'
+// Modal helpers
+window.openModal = id => {
+  const m = typeof id === 'string' ? document.getElementById(id) : id;
+  if (m) { m.classList.add('show'); document.body.style.overflow = 'hidden'; }
+};
+window.closeModal = id => {
+  const m = id ? (typeof id === 'string' ? document.getElementById(id) : id) : document.querySelector('.modal-backdrop.show');
+  if (m) { m.classList.remove('show'); document.body.style.overflow = ''; }
+};
+document.addEventListener('click', e => {
+  const close = e.target.closest('[data-modal-close]');
+  if (close) { e.preventDefault(); closeModal(close.closest('.modal-backdrop')); return; }
+  const open = e.target.closest('[data-modal-open]');
+  if (open) { e.preventDefault(); openModal(open.dataset.modalOpen); return; }
+  if (e.target.classList.contains('modal-backdrop')) closeModal(e.target);
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+JS;
+}
+
+}
+// </function_exists guard for setting>
+
 
 // =========================================================
 // AUTH yordamchilar
