@@ -1,93 +1,34 @@
-# VatanParvar Yaypan — Apache config (v3.0 hardened)
+# VatanParvar Yaypan — Apache config (sodda, ishonchli)
+#
+# Murakkab xavfsizlik logikasi PHP qatlamida:
+#   includes/scrape_guard.php (UA blokirovkasi, honeypot, burst limit)
+#   includes/security.php (CSRF, rate limit, session, headers)
+#
+# Bu yerda faqat fayl/papka darajasidagi himoya:
 
-# UTF-8
 AddDefaultCharset UTF-8
-
-# Default index
 DirectoryIndex index.php index.html
-
-# Disable directory listing va follow-symlinks
-Options -Indexes -FollowSymLinks +SymLinksIfOwnerMatch
+Options -Indexes
 
 # ============================================================
-# SERVER SIGNATURE — yashirish
+# Maxfiy fayllarga kirishni taqiqlash
 # ============================================================
-ServerSignature Off
-<IfModule mod_headers.c>
-    Header unset X-Powered-By
-    Header always unset X-Powered-By
-    Header unset Server
-    Header unset X-AspNet-Version
-    Header unset X-AspNetMvc-Version
-</IfModule>
-
-# ============================================================
-# SENSITIVE FILE/DIRECTORY BLOK
-# ============================================================
-<FilesMatch "\.(sql|md|log|env|lock|ini|conf|htaccess|htpasswd|bak|backup|swp|swo|orig|old|tmp|cache)$">
+<FilesMatch "\.(sql|md|log|env|lock|bak|backup|swp|orig|old)$">
     Require all denied
 </FilesMatch>
 
-# Hidden fayllar
+# Yashirin fayllar (.htaccess, .git, .env, .DS_Store, va h.k.)
 <FilesMatch "^\.">
     Require all denied
 </FilesMatch>
 
-# Sensitive directories
-<DirectoryMatch "/(includes|sql|cache|\.git|\.svn|\.hg|node_modules|vendor)/">
+# Ichki katalog/papkalarga kirish taqiqlangan
+<DirectoryMatch "/(includes|sql|cache)/">
     Require all denied
 </DirectoryMatch>
 
 # ============================================================
-# UPLOADS — PHP execution butunlay bloklanadi
-# (assets/uploads/.htaccess'da ham qo'shimcha himoya mavjud)
-# ============================================================
-<DirectoryMatch "/(uploads|assets/uploads)/">
-    <FilesMatch "\.(php|phtml|phar|cgi|pl|py|rb|sh|exe|svg|html?|xml)$">
-        Require all denied
-    </FilesMatch>
-    Options -ExecCGI
-    RemoveHandler .php .phtml .phar
-    RemoveType .php .phtml .phar
-</DirectoryMatch>
-
-# ============================================================
-# SECURITY HEADERS
-# ============================================================
-<IfModule mod_headers.c>
-    Header always set X-Content-Type-Options "nosniff"
-    Header always set X-Frame-Options "SAMEORIGIN"
-    Header always set Referrer-Policy "strict-origin-when-cross-origin"
-    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=(), interest-cohort=(), payment=()"
-    Header always set Cross-Origin-Opener-Policy "same-origin"
-    Header always set X-XSS-Protection "0"
-
-    # HSTS — faqat HTTPS'da ishlaydi (HTTP'da brauzer ignore qiladi)
-    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
-
-    # Service worker — har doim fresh
-    <FilesMatch "sw\.js$">
-        Header set Cache-Control "no-cache, no-store, must-revalidate"
-        Header set Pragma "no-cache"
-    </FilesMatch>
-
-    # Static asset cache (filename-versioned bo'lishi tavsiya etiladi)
-    <FilesMatch "\.(jpg|jpeg|png|webp|gif|ico|woff|woff2|ttf|eot)$">
-        Header set Cache-Control "public, max-age=2592000, immutable"
-    </FilesMatch>
-    <FilesMatch "\.(css|js)$">
-        Header set Cache-Control "public, max-age=604800"
-    </FilesMatch>
-
-    # HTML/PHP — no-cache (auth-related)
-    <FilesMatch "\.(html|php)$">
-        Header set Cache-Control "no-cache, no-store, must-revalidate"
-        Header set Pragma "no-cache"
-    </FilesMatch>
-</IfModule>
-
-# ============================================================
-# CACHE STATIC
+# Static asset caching (sodda)
 # ============================================================
 <IfModule mod_expires.c>
     ExpiresActive On
@@ -96,86 +37,24 @@ ServerSignature Off
     ExpiresByType image/webp "access plus 1 month"
     ExpiresByType image/svg+xml "access plus 1 month"
     ExpiresByType image/x-icon "access plus 1 year"
-    ExpiresByType font/woff "access plus 1 year"
     ExpiresByType font/woff2 "access plus 1 year"
     ExpiresByType text/css "access plus 1 week"
     ExpiresByType application/javascript "access plus 1 week"
 </IfModule>
 
 # ============================================================
-# COMPRESSION
+# Compression
 # ============================================================
 <IfModule mod_deflate.c>
-    AddOutputFilterByType DEFLATE text/html text/css text/javascript application/javascript application/json application/xml text/plain text/xml image/svg+xml
-</IfModule>
-<IfModule mod_brotli.c>
-    AddOutputFilterByType BROTLI_COMPRESS text/html text/css text/javascript application/javascript application/json application/xml text/plain text/xml image/svg+xml
+    AddOutputFilterByType DEFLATE text/html text/css text/javascript application/javascript application/json text/plain image/svg+xml
 </IfModule>
 
-# Disable ETags
+# ============================================================
+# Service worker — cache ishlatmaslik
+# ============================================================
 <IfModule mod_headers.c>
-    Header unset ETag
-</IfModule>
-FileETag None
-
-# ============================================================
-# ANTI-SCRAPING / BOT BLOCK (kuchli versiya)
-# ============================================================
-<IfModule mod_rewrite.c>
-    RewriteEngine On
-
-    # 1) Force HTTPS (production'da yoqing)
-    # RewriteCond %{HTTPS} !=on
-    # RewriteCond %{HTTP:X-Forwarded-Proto} !=https
-    # RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
-
-    # 2) Bot va scraper UA'lar — qattiq blok
-    RewriteCond %{HTTP_USER_AGENT} (curl|wget|libwww-perl|python-requests|python-urllib|go-http-client|java/|okhttp|apache-httpclient|httpclient|httpunit|phantomjs|headlesschrome|selenium|webdriver|puppeteer|playwright|scrapy|crawler|spider|scraper|mj12bot|ahrefsbot|semrushbot|dotbot|rogerbot|sogou|exabot|baiduspider|megaindex|serpstatbot|dataforseobot|petalbot|mauibot|bytedance|amazonbot|gpt-3|gptbot|chatgpt|claudebot|anthropic-ai|cohere-ai|ccbot|commoncrawl|fasthttp|sqlmap|nikto|wpscan|acunetix|nessus|qualys|guzzlehttp|reqwest) [NC]
-    RewriteRule ^.*$ - [F,L]
-
-    # 3) Bo'sh User-Agent — bot
-    RewriteCond %{HTTP_USER_AGENT} ^$
-    RewriteRule ^.*$ - [F,L]
-
-    # 4) Honeypot URL'lar (mashhur exploit yo'llari)
-    RewriteRule "^(wp-admin|wp-login|wp-content|wp-includes|administrator|phpmyadmin|pma|adminer|.well-known/acme-challenge)" - [F,L]
-    RewriteRule "^.*\.(env|git|aws|docker|sql|bak|backup|tar|gz|zip|7z|rar|swp|swo|orig|old|tmp)$" - [F,L]
-
-    # 5) SQL injection probe
-    RewriteCond %{QUERY_STRING} (\<|%3C)([^s]*s)+cript.*(\>|%3E) [NC,OR]
-    RewriteCond %{QUERY_STRING} GLOBALS(=|\[|\%[0-9A-Z]{0,2}) [OR]
-    RewriteCond %{QUERY_STRING} _REQUEST(=|\[|\%[0-9A-Z]{0,2}) [OR]
-    RewriteCond %{QUERY_STRING} ^.*(\[|\]|\(|\)|<|>).* [NC,OR]
-    RewriteCond %{QUERY_STRING} (NULL|OUTFILE|LOAD_FILE) [OR,NC]
-    RewriteCond %{QUERY_STRING} (\.\./|\.\.\\) [NC]
-    RewriteRule ^(.*)$ - [F,L]
-
-    # 6) XSS probe
-    RewriteCond %{QUERY_STRING} (<|%3C).*script.*(>|%3E) [NC,OR]
-    RewriteCond %{QUERY_STRING} javascript: [NC,OR]
-    RewriteCond %{QUERY_STRING} (vbscript|onload|onerror|onclick)(=|%3D) [NC]
-    RewriteRule ^(.*)$ - [F,L]
-</IfModule>
-
-# ============================================================
-# IP-DAN-IP HIMOYA (mod_evasive bilan ishlaydi)
-# ============================================================
-<IfModule mod_evasive20.c>
-    DOSHashTableSize 3097
-    DOSPageCount 5
-    DOSSiteCount 100
-    DOSPageInterval 1
-    DOSSiteInterval 1
-    DOSBlockingPeriod 600
-</IfModule>
-
-# ============================================================
-# Hotlink himoyasi (umumiy — uploads'da alohida)
-# ============================================================
-<IfModule mod_rewrite.c>
-    RewriteEngine On
-    RewriteCond %{HTTP_REFERER} !^$
-    RewriteCond %{HTTP_REFERER} !^https?://(www\.)?%{HTTP_HOST}/.*$ [NC]
-    RewriteCond %{HTTP_REFERER} !^https?://(www\.)?(google|bing|duckduckgo|yandex|t\.me|telegram)\.[a-z]+/.*$ [NC]
-    RewriteRule \.(jpg|jpeg|png|gif|webp)$ - [F,L]
+    <FilesMatch "sw\.js$">
+        Header set Cache-Control "no-cache, no-store, must-revalidate"
+    </FilesMatch>
+    Header unset X-Powered-By
 </IfModule>

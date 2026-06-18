@@ -58,7 +58,7 @@ if (session_status() === PHP_SESSION_NONE) {
     @ini_set('session.cookie_httponly', '1');
     @ini_set('session.cookie_samesite', 'Lax');
     @ini_set('session.cookie_secure', $IS_HTTPS ? '1' : '0');
-    @ini_set('session.gc_maxlifetime', '7200');   // 2 soat (eski 24h kamaytirildi)
+    @ini_set('session.gc_maxlifetime', '7200');
     @ini_set('session.use_trans_sid', '0');
     @ini_set('session.sid_length', '48');
     @ini_set('session.sid_bits_per_character', '6');
@@ -69,15 +69,18 @@ if (session_status() === PHP_SESSION_NONE) {
         'samesite' => 'Lax',
         'secure'   => $IS_HTTPS,
     ]);
-    // Sessiya nomini standart bo'lmagan qilamiz (oson topilmasin)
     @session_name('vp_sess');
     session_start();
 
-    // Session timeout — agar 2 soat hech narsa qilmasa, sessiyani tozalaymiz
+    // Idle timeout — 2 soat hech narsa qilmasa, foydalanuvchi ma'lumotlarini
+    // tozalaymiz (sessiyani destroy qilmasdan, faqat content'ni unset).
+    // Bu shu request'dayoq xavfsiz: keyingi sahifada foydalanuvchi anonymous bo'ladi.
     if (!empty($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > 7200) {
-        $_SESSION = [];
-        session_destroy();
-        @session_start();
+        // Faqat sezgir ma'lumotni tozalaymiz, sessiyaning o'zini emas
+        unset($_SESSION['user_id'], $_SESSION['user_role'],
+              $_SESSION['fingerprint'], $_SESSION['login_time'],
+              $_SESSION['reset_code'], $_SESSION['reset_user'],
+              $_SESSION['reset_expire']);
     }
     $_SESSION['last_activity'] = time();
 }
