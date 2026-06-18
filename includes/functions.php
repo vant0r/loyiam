@@ -178,12 +178,14 @@ function render_head(string $page_title = '', array $opts = []): void {
 <meta property="og:type" content="website">
 <link rel="icon" type="image/svg+xml" href="<?= $logo ?>">
 <link rel="manifest" href="/manifest.json">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/css/app.css?v=5">
 <style>
-/* PHP-interpolated CSS variables (only the dynamic ones) */
+/*
+ * BUTUN GLOBAL CSS — har bir sahifa output'iga inline qo'shiladi
+ * (tashqi fayl yo'q, brauzer view-source da hamma narsa ko'rinadi)
+ */
+<?php readfile(__DIR__ . '/../assets/css/app.css'); ?>
+
+/* PHP-interpolated CSS variables (dynamic) */
 :root{--primary-500:<?= PRIMARY_COLOR ?>;--primary:<?= PRIMARY_COLOR ?>}
 </style>
 <?php if (!empty($opts['extra_head'])) echo $opts['extra_head']; ?>
