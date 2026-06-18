@@ -2,6 +2,9 @@
 /**
  * Umumiy funksiyalar, header/footer renderi, design system.
  * Tarjimalar ./lang/ ichida
+ *
+ * NOTE: bootstrap.php bilan birga ishlash uchun helper funksiyalar
+ * `if (!function_exists(...))` guard ostida.
  */
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/database.php';
@@ -12,6 +15,7 @@ require_once __DIR__ . '/scrape_guard.php';
 // =========================================================
 // TARJIMALAR
 // =========================================================
+if (!function_exists('_load_translations')) {
 function _load_translations(): array {
     static $cache = null;
     if ($cache !== null) return $cache;
@@ -40,8 +44,9 @@ function t(string $key, array $params = []): string {
 }
 
 function lang(): string { return $_SESSION['lang'] ?? 'uz_latin'; }
+} // end if !function_exists
 
-/** Lotin → Kirill avtomatik konvertor */
+if (!function_exists('uz_latin_to_cyrillic')) {
 function uz_latin_to_cyrillic(string $text): string {
     $map = [
         // 4 belgili
@@ -65,10 +70,12 @@ function uz_latin_to_cyrillic(string $text): string {
     ];
     return strtr($text, $map);
 }
+}
 
 // =========================================================
 // SOZLAMALAR (DB cache)
 // =========================================================
+if (!function_exists('setting')) {
 function setting(string $key, $default = '') {
     static $cache = null;
     if ($cache === null) {
@@ -99,10 +106,12 @@ function flush_settings_cache(): void {
     // Eski .cache ham bo'lsa o'chirib yuboramiz
     @unlink(__DIR__ . '/../cache/data/settings.cache');
 }
+}
 
 // =========================================================
 // AUTH yordamchilar
 // =========================================================
+if (!function_exists('is_logged_in')) {
 function is_logged_in(): bool { return isset($_SESSION['user_id']); }
 function current_user(): ?array {
     if (!is_logged_in()) return null;
@@ -131,10 +140,12 @@ function require_developer(): void {
     require_login();
     if (!is_developer()) { header('Location: /'); exit; }
 }
+}
 
 // =========================================================
 // Yordamchilar
 // =========================================================
+if (!function_exists('e')) {
 function e($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 function money($v, string $cur = '') {
     $r = number_format((float)$v, 0, '.', ' ');
@@ -148,9 +159,11 @@ function flash(string $key, ?string $msg = null) {
     }
     $_SESSION['flash'][$key] = $msg;
 }
+}
 
 // =========================================================
-// HEADER / FOOTER renderi
+// HEADER / FOOTER renderi (faqat eski sahifalar uchun — standalone sahifalar
+// bootstrap.php ishlatadi va bu funksiyalarni chaqirmaydi)
 // =========================================================
 function render_head(string $page_title = '', array $opts = []): void {
     $title = $page_title ? e($page_title) . ' — ' . e(setting('site_name', SITE_NAME)) : e(setting('site_name', SITE_NAME));
