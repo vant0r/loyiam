@@ -1,5 +1,6 @@
 <?php
-require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/bootstrap.php';
+auth_class();
 require_admin();
 
 // PRG flash messages
@@ -106,7 +107,7 @@ $users = db()->fetchAll("SELECT * FROM users WHERE $where ORDER BY created_at DE
 render_head(t('users'));
 ?>
 <div class="layout">
-<?php render_sidebar('admin','users'); ?>
+<?= panel_sidebar('admin', 'users') ?>
 <main class="main">
 
   <div class="page-header-modern">
@@ -311,4 +312,5 @@ function openUserModal(u){
   openModal('userModal');
 }
 </script>
+<script><?= panel_js() ?></script>
 </body></html>

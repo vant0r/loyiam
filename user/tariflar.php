@@ -1,5 +1,6 @@
 <?php
-require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/bootstrap.php';
+auth_class();
 require_login();
 
 $u = current_user();
@@ -126,7 +127,7 @@ $selectedTariff = (int)($_GET['tariff'] ?? 0);
 render_head(t('tariffs'));
 ?>
 <div class="layout">
-<?php render_sidebar('user', 'tariffs'); ?>
+<?= panel_sidebar('user', 'tariffs') ?>
 <main class="main">
   <div class="page-header">
     <div class="page-title"><?= icon('gem', 28) ?> <?= t('tariffs') ?></div>
@@ -631,4 +632,5 @@ window.addEventListener('load', () => {
 });
 <?php endif; ?>
 </script>
+<script><?= panel_js() ?></script>
 </body></html>

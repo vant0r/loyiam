@@ -6,7 +6,8 @@
  *   /admin/users-form.php          → yangi qo'shish
  *   /admin/users-form.php?id=X     → tahrirlash
  */
-require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/bootstrap.php';
+auth_class();
 require_admin();
 
 $id = (int)($_GET['id'] ?? 0);
@@ -97,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 render_head($isEdit ? t('edit') : t('add'));
 ?>
 <div class="layout">
-<?php render_sidebar('admin','users'); ?>
+<?= panel_sidebar('admin', 'users') ?>
 <main class="main">
   <div class="page-header">
     <div>
@@ -243,4 +244,5 @@ render_head($isEdit ? t('edit') : t('add'));
   });
 })();
 </script>
+<script><?= panel_js() ?></script>
 </body></html>

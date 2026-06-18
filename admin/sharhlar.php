@@ -1,5 +1,6 @@
 <?php
-require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/bootstrap.php';
+auth_class();
 require_admin();
 
 $msg = flash('msg');
@@ -53,7 +54,7 @@ $approved_count = (int)(db()->fetch("SELECT COUNT(*) c FROM reviews WHERE status
 render_head(t('reviews'));
 ?>
 <div class="layout">
-<?php render_sidebar('admin','reviews'); ?>
+<?= panel_sidebar('admin', 'reviews') ?>
 <main class="main">
   <div class="page-header">
     <div class="page-title"><?= icon('star', 28) ?> <?= t('reviews') ?></div>
@@ -162,4 +163,5 @@ render_head(t('reviews'));
     </form>
   </div>
 </div>
+<script><?= panel_js() ?></script>
 </body></html>

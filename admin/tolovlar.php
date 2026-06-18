@@ -1,5 +1,6 @@
 <?php
-require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/bootstrap.php';
+auth_class();
 require_admin();
 
 $lang_field = lang() === 'uz_cyrillic' ? 'cyrillic' : 'latin';
@@ -71,7 +72,7 @@ $count_pending= (int)(db()->fetch("SELECT COUNT(*) c FROM payments WHERE status=
 render_head(t('payments'));
 ?>
 <div class="layout">
-<?php render_sidebar('admin','payments'); ?>
+<?= panel_sidebar('admin', 'payments') ?>
 <main class="main">
 
   <div class="page-header-modern">
@@ -217,4 +218,5 @@ render_head(t('payments'));
 
 </main>
 </div>
+<script><?= panel_js() ?></script>
 </body></html>

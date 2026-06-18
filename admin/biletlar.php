@@ -1,5 +1,6 @@
 <?php
-require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/bootstrap.php';
+auth_class();
 require_admin();
 
 $lang_field = lang() === 'uz_cyrillic' ? 'cyrillic' : 'latin';
@@ -87,7 +88,7 @@ $tickets = db()->fetchAll(
 render_head(t('tickets'));
 ?>
 <div class="layout">
-<?php render_sidebar('admin','tickets'); ?>
+<?= panel_sidebar('admin', 'tickets') ?>
 <main class="main">
   <div class="page-header">
     <div class="page-title"><?= icon('ticket', 28) ?> <?= t('tickets') ?></div>
@@ -276,4 +277,5 @@ function openTicketModal(t){
   openModal('ticketModal');
 }
 </script>
+<script><?= panel_js() ?></script>
 </body></html>

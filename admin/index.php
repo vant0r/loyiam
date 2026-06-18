@@ -1,5 +1,6 @@
 <?php
-require_once __DIR__ . '/../includes/functions.php';
+require_once __DIR__ . '/../includes/bootstrap.php';
+auth_class();
 require_admin();
 
 // ================== Statistikalar ==================
@@ -106,10 +107,23 @@ function activity_icon(string $action): array {
     return $map[$action] ?? ['activity', 'info'];
 }
 
-render_head('Admin Dashboard');
+?><!DOCTYPE html>
+<html lang="<?= lang() === 'uz_cyrillic' ? 'uz-Cyrl' : 'uz' ?>">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#3B82F6">
+<title><?= e('Admin Dashboard') ?> — <?= e(setting('site_name', SITE_NAME)) ?></title>
+<link rel="icon" type="image/svg+xml" href="<?= e(setting('site_logo', '/assets/images/logo.svg')) ?>">
+<style>
+<?= base_css() ?>
+<?= panel_css() ?>
+</style>
+</head>
+<body>
 ?>
 <div class="layout">
-<?php render_sidebar('admin','dashboard'); ?>
+<?= panel_sidebar('admin', 'dashboard') ?>
 <main class="main">
 
   <!-- Modern page header -->
@@ -410,4 +424,5 @@ render_head('Admin Dashboard');
 
 </main>
 </div>
+<script><?= panel_js() ?></script>
 </body></html>

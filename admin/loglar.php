@@ -1,5 +1,6 @@
 <?php
-require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/bootstrap.php';
+auth_class();
 require_admin();
 
 // Eksport
@@ -70,7 +71,7 @@ $actions = db()->fetchAll("SELECT action, COUNT(*) c FROM logs GROUP BY action O
 render_head(t('logs'));
 ?>
 <div class="layout">
-<?php render_sidebar('admin','logs'); ?>
+<?= panel_sidebar('admin', 'logs') ?>
 <main class="main">
 
   <div class="page-header-modern">
@@ -223,4 +224,5 @@ render_head(t('logs'));
     </form>
   </div>
 </div>
+<script><?= panel_js() ?></script>
 </body></html>

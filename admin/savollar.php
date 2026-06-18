@@ -1,5 +1,6 @@
 <?php
-require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/bootstrap.php';
+auth_class();
 require_admin();
 
 $lang_field = lang() === 'uz_cyrillic' ? 'cyrillic' : 'latin';
@@ -131,7 +132,7 @@ unset($q);
 render_head(t('questions'));
 ?>
 <div class="layout">
-<?php render_sidebar('admin','questions'); ?>
+<?= panel_sidebar('admin', 'questions') ?>
 <main class="main">
   <div class="page-header">
     <div>
@@ -426,4 +427,5 @@ function openQModal(q){
   openModal('qModal');
 }
 </script>
+<script><?= panel_js() ?></script>
 </body></html>
