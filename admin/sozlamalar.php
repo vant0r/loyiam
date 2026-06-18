@@ -1,5 +1,6 @@
 <?php
-require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/bootstrap.php';
+auth_class();
 require_admin();
 
 $msg = ''; $err = '';
@@ -82,7 +83,7 @@ $tab = $_GET['tab'] ?? 'general';
 render_head(t('settings'));
 ?>
 <div class="layout">
-<?php render_sidebar('admin','settings'); ?>
+<?= panel_sidebar('admin', 'settings') ?>
 <main class="main">
   <div class="page-header">
     <div class="page-title">⚙️ <?= t('settings') ?></div>
@@ -508,4 +509,5 @@ yordam - Yordam</pre>
   <?php endif; ?>
 </main>
 </div>
+<script><?= panel_js() ?></script>
 </body></html>

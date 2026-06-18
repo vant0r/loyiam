@@ -1,5 +1,6 @@
 <?php
-require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/bootstrap.php';
+auth_class();
 require_admin();
 
 $id = (int)($_GET['id'] ?? 0);
@@ -68,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 render_head($isEdit ? t('edit') : t('add'));
 ?>
 <div class="layout">
-<?php render_sidebar('admin','tariffs'); ?>
+<?= panel_sidebar('admin', 'tariffs') ?>
 <main class="main">
   <div class="page-header">
     <div>
@@ -177,4 +178,5 @@ render_head($isEdit ? t('edit') : t('add'));
 .form-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:24px;padding:18px 0}
 @media(max-width:640px){.form-actions{flex-direction:column-reverse}.form-actions .btn{width:100%}}
 </style>
+<script><?= panel_js() ?></script>
 </body></html>

@@ -37,6 +37,26 @@ function run_migrations(?PDO $pdo): array {
               KEY `idx_created` (`created_at`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
         ],
+
+        // v3.0 — secure remember-me tokenlar (Auth::set_remember_cookie uchun)
+        ['create_remember_tokens', "
+            CREATE TABLE IF NOT EXISTS `remember_tokens` (
+              `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+              `user_id` INT UNSIGNED NOT NULL,
+              `token_hash` CHAR(64) NOT NULL,
+              `expires_at` DATETIME NOT NULL,
+              `user_agent` VARCHAR(255) DEFAULT NULL,
+              `ip_address` VARCHAR(45) DEFAULT NULL,
+              `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              KEY `idx_user` (`user_id`),
+              UNIQUE KEY `uniq_hash` (`token_hash`),
+              KEY `idx_expires` (`expires_at`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        ],
+
+        // v3.0 — to'lovlarda public_token (signed invoice)
+        ['add_payment_token',
+         "ALTER TABLE `payments` ADD COLUMN `public_token` VARCHAR(64) DEFAULT NULL AFTER `transaction_id`, ADD UNIQUE KEY `uniq_public_token` (`public_token`)"],
     ];
 
     $results = ['ok' => 0, 'skipped' => 0, 'errors' => []];
@@ -83,7 +103,7 @@ function run_migrations(?PDO $pdo): array {
  * Avtomatik bir marta ishga tushirish (config.php dan chaqiriladi)
  */
 function maybe_auto_migrate(): void {
-    $lockFile = dirname(__DIR__) . '/.migrated_v2.4';
+    $lockFile = dirname(__DIR__) . '/.migrated_v3.0';
     if (is_file($lockFile)) return;
     if (!is_file(dirname(__DIR__) . '/.installed')) return;
 

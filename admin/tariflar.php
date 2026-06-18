@@ -1,5 +1,6 @@
 <?php
-require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/bootstrap.php';
+auth_class();
 require_admin();
 
 $msg = flash('msg');
@@ -79,7 +80,7 @@ $lang_field = lang() === 'uz_cyrillic' ? 'cyrillic' : 'latin';
 render_head(t('tariffs'));
 ?>
 <div class="layout">
-<?php render_sidebar('admin','tariffs'); ?>
+<?= panel_sidebar('admin', 'tariffs') ?>
 <main class="main">
   <div class="page-header">
     <div class="page-title"><?= icon('gem', 28) ?> <?= t('tariffs') ?></div>
@@ -241,4 +242,5 @@ function openTariffModal(t){
   openModal('tariffModal');
 }
 </script>
+<script><?= panel_js() ?></script>
 </body></html>

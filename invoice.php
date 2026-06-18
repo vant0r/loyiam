@@ -1,8 +1,9 @@
 <?php
 /**
- * Foydalanuvchi uchun chek/invoice ko'rsatish
+ * invoice.php — STANDALONE foydalanuvchi cheki
  */
-require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/bootstrap.php';
+auth_class();
 require_once __DIR__ . '/includes/payments/invoice.php';
 
 require_login();
@@ -10,7 +11,6 @@ require_login();
 $id = (int)($_GET['id'] ?? 0);
 $u = current_user();
 
-// Foydalanuvchi faqat o'z chekini ko'ra oladi (admin barchasini)
 $p = db()->fetch("SELECT * FROM payments WHERE id = ?", [$id]);
 if (!$p) { http_response_code(404); echo 'Topilmadi'; exit; }
 

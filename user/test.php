@@ -1,5 +1,6 @@
 <?php
-require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/bootstrap.php';
+auth_class();
 require_login();
 
 $u = current_user();
@@ -162,11 +163,23 @@ if (count($questions) < $attempt['total_questions']) {
 }
 
 if (empty($questions)) {
-    render_head('Test');
-    render_header();
-    echo '<div class="container section text-center"><h2>Savollar mavjud emas</h2>';
+    ?><!DOCTYPE html>
+<html lang="<?= lang() === 'uz_cyrillic' ? 'uz-Cyrl' : 'uz' ?>">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#3B82F6">
+<title><?= e('Test') ?> — <?= e(setting('site_name', SITE_NAME)) ?></title>
+<link rel="icon" type="image/svg+xml" href="<?= e(setting('site_logo', '/assets/images/logo.svg')) ?>">
+<style>
+<?= base_css() ?>
+<?= panel_css() ?>
+</style>
+</head>
+<body>
+<?php
+echo '<div class="container section text-center"><h2>Savollar mavjud emas</h2>';
     echo '<a href="/user/testlar.php" class="btn btn-primary">Ortga</a></div>';
-    render_footer();
     exit;
 }
 
@@ -567,6 +580,136 @@ body{padding-top:64px;padding-bottom:96px;background:var(--bg-soft)}
   .test-side{order:2}
   .test-main{order:1}
 }
+
+/* ============================================================
+   MOBILE-FIRST OVERRIDES v3.0 — test.php (aggressive)
+   Test ishlash mobil tajribasi - kritik sahifa
+   ============================================================ */
+@media (max-width: 880px){
+  body{padding-top:96px;padding-bottom:84px}
+
+  /* Top bar — better stacking, bigger touch */
+  .test-topbar{padding:8px 0;background:rgba(255,255,255,.98)}
+  .test-topbar-inner{flex-direction:column;align-items:stretch;gap:6px;padding:0 12px}
+  .test-progress-label{font-size:12px;margin-bottom:4px}
+  .test-progress{height:6px}
+  .test-topbar-right{justify-content:space-between;width:100%;gap:6px}
+  .test-timer{padding:7px 12px;font-size:13px;min-height:36px;border-radius:8px}
+  .test-topbar-right .btn{padding:7px 12px;font-size:12px;min-height:36px}
+
+  /* Layout */
+  .test-layout{padding:0 12px;margin-top:12px;gap:12px}
+  .test-main{padding:18px 16px;border-radius:14px;order:1}
+  .test-side{order:2;grid-template-columns:1fr;gap:10px}
+
+  /* Question */
+  .q-header{margin-bottom:14px}
+  .q-text{font-size:16px;line-height:1.5;margin-bottom:8px}
+  .q-tags{gap:4px}
+  .q-tags .badge{font-size:10px;padding:3px 8px}
+  .q-image{margin-bottom:14px;border-radius:10px}
+  .q-image img{max-height:240px}
+
+  /* Explanation */
+  .explanation-toggle{padding:9px 14px;font-size:13px;min-height:40px;margin-bottom:14px}
+  .explanation-content{padding:12px 14px;font-size:13px;margin-bottom:14px}
+
+  /* Answers — BIGGER taps, easier reading */
+  .answer-list{gap:8px}
+  .answer-item{padding:13px 14px;gap:12px;border-radius:10px;border-width:2px;min-height:56px;align-items:center}
+  .answer-letter{width:28px;height:28px;font-size:13px;flex-shrink:0}
+  .answer-text{font-size:15px;line-height:1.45}
+  .answer-mark{width:24px;height:24px;font-size:12px}
+
+  /* Feedback */
+  .answer-feedback{margin-top:12px}
+  .feedback-msg{padding:10px 12px;font-size:13px;border-radius:8px}
+
+  /* Sidebar nav grid — bigger touch */
+  .nav-card{padding:14px;border-radius:12px}
+  .nav-title{font-size:10px;margin-bottom:10px}
+  .nav-grid{grid-template-columns:repeat(6,1fr);gap:5px;margin-bottom:10px}
+  .nav-item{font-size:12px;min-height:40px;border-width:2px;border-radius:8px;font-weight:700}
+  .nav-legend{font-size:10px;gap:5px;padding-top:8px}
+  .nav-legend .dot{width:12px;height:12px}
+
+  /* Tip */
+  .tip-card{padding:12px;font-size:12px;border-radius:10px}
+  .tip-title{font-size:10px;margin-bottom:6px}
+
+  /* Report */
+  .report-btn{padding:10px 12px;font-size:12px;min-height:42px}
+
+  /* Bottom action bar */
+  .test-bottom{padding:10px 0;background:rgba(255,255,255,.98);box-shadow:0 -4px 12px rgba(15,23,42,.06)}
+  .test-bottom-inner{padding:0 12px;flex-direction:row;gap:8px}
+  .test-bottom .btn{min-width:0;flex:1;font-size:14px;padding:13px 14px;min-height:48px;border-radius:10px}
+}
+
+@media (max-width: 480px){
+  body{padding-top:90px;padding-bottom:78px}
+  .test-topbar-inner{padding:0 10px}
+  .test-layout{padding:0 10px;margin-top:10px}
+  .test-main{padding:14px 12px;border-radius:12px}
+
+  .q-text{font-size:15px}
+  .q-image img{max-height:200px}
+  .q-image{border-radius:8px}
+
+  .answer-item{padding:12px 12px;gap:10px;min-height:54px}
+  .answer-letter{width:26px;height:26px;font-size:12px}
+  .answer-text{font-size:14px}
+
+  .nav-grid{grid-template-columns:repeat(5,1fr);gap:4px}
+  .nav-item{font-size:11px;min-height:36px}
+
+  .test-bottom-inner{padding:0 10px;gap:6px}
+  .test-bottom .btn{font-size:13px;padding:12px;min-height:46px}
+  .test-bottom .btn span{font-size:13px}
+}
+
+@media (max-width: 360px){
+  .test-topbar-inner{padding:0 8px}
+  .test-layout{padding:0 8px}
+  .test-main{padding:12px 10px}
+  .q-text{font-size:14px}
+  .answer-item{padding:10px;gap:9px;min-height:50px}
+  .answer-text{font-size:13px}
+  .nav-grid{grid-template-columns:repeat(4,1fr)}
+  .nav-item{min-height:34px;font-size:11px}
+  .test-bottom .btn{font-size:12px;padding:11px}
+}
+
+/* Touch — disable hover */
+@media (hover:none){
+  .answer-item:not(.is-correct):not(.is-wrong):not(.is-disabled):hover{
+    border-color:var(--border);background:#fff;
+  }
+  .answer-item:active:not(.is-correct):not(.is-wrong):not(.is-disabled){
+    background:var(--primary-50);border-color:var(--primary-300);transform:scale(.99);
+  }
+  .nav-item:hover{transform:none;border-color:var(--border);color:var(--text-soft)}
+  .nav-item:active{transform:scale(.95)}
+  .explanation-toggle:hover{transform:none}
+  .q-image img:hover{transform:none}
+}
+
+/* Performance — disable expensive blur on mobile */
+@media (max-width: 880px){
+  .test-topbar,.test-bottom{
+    backdrop-filter:saturate(150%) blur(10px);
+    -webkit-backdrop-filter:saturate(150%) blur(10px);
+  }
+}
+
+/* Landscape phone — better space usage */
+@media (max-height: 480px) and (orientation: landscape){
+  body{padding-top:54px;padding-bottom:64px}
+  .test-topbar-inner{flex-direction:row;align-items:center;padding:0 14px}
+  .test-progress-block{flex:1}
+  .q-image img{max-height:140px}
+  .test-bottom .btn{padding:10px}
+}
 </style>
 
 <script>
@@ -831,4 +974,5 @@ startTimer();
 updateProgress();
 updateButtons();
 </script>
+<script><?= panel_js() ?></script>
 </body></html>

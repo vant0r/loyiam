@@ -1,5 +1,6 @@
 <?php
-require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/bootstrap.php';
+auth_class();
 require_admin();
 
 // PRG flash messages
@@ -106,114 +107,137 @@ $users = db()->fetchAll("SELECT * FROM users WHERE $where ORDER BY created_at DE
 render_head(t('users'));
 ?>
 <div class="layout">
-<?php render_sidebar('admin','users'); ?>
+<?= panel_sidebar('admin', 'users') ?>
 <main class="main">
-  <div class="page-header">
-    <div class="page-title"><?= icon('users', 28) ?> <?= t('users') ?></div>
-    <a href="/admin/users-form.php" class="btn btn-primary">
-      <?= icon('plus', 16) ?> <?= t('add') ?>
-    </a>
+
+  <div class="page-header-modern">
+    <div>
+      <div class="page-eyebrow"><?= icon('users', 12) ?> <?= lang()==='uz_cyrillic' ? "Бошқарув" : "Boshqaruv" ?></div>
+      <h1><?= t('users') ?></h1>
+      <div class="page-subtitle">
+        <?= lang()==='uz_cyrillic' ? "Барча фойдаланувчиларни бошқаринг" : "Barcha foydalanuvchilarni boshqaring" ?>
+      </div>
+    </div>
+    <div class="page-toolbar">
+      <button type="button" class="btn btn-light btn-sm" onclick='openUserModal({})'><?= icon('user-plus', 14) ?> <?= lang()==='uz_cyrillic' ? "Тез қўшиш" : "Tez qo'shish" ?></button>
+      <a href="/admin/users-form.php" class="btn btn-primary btn-sm"><?= icon('plus', 14) ?> <?= t('add') ?></a>
+    </div>
   </div>
 
   <?php if ($msg): ?><div class="alert alert-success"><?= icon('check-circle', 18) ?> <?= e($msg) ?></div><?php endif; ?>
   <?php if ($err): ?><div class="alert alert-danger"><?= icon('x-circle', 18) ?> <?= e($err) ?></div><?php endif; ?>
 
-  <form method="get" class="card mb-3" style="display:flex;gap:12px;flex-wrap:wrap;align-items:end" data-no-loading>
-    <div class="form-group flex-1" style="min-width:200px;margin-bottom:0">
-      <input type="text" name="q" class="form-control" value="<?= e($search) ?>" placeholder="<?= t('search') ?>...">
+  <div class="data-table">
+    <div class="data-table-head">
+      <div class="data-table-title">
+        <?= icon('users', 16) ?>
+        <?= lang()==='uz_cyrillic' ? "Барча фойдаланувчилар" : "Barcha foydalanuvchilar" ?>
+        <span class="count-pill"><?= count($users) ?></span>
+      </div>
+      <form method="get" class="data-table-toolbar" data-no-loading>
+        <div class="input-group">
+          <span class="input-icon"><?= icon('search', 14) ?></span>
+          <input type="text" name="q" class="form-control" value="<?= e($search) ?>" placeholder="<?= lang()==='uz_cyrillic' ? "Қидирув..." : "Qidiruv..." ?>" style="padding-left:36px;min-width:200px">
+        </div>
+        <select name="role" class="form-control">
+          <option value="">— <?= t('role') ?> —</option>
+          <option value="user"      <?= $role_f==='user'?'selected':'' ?>>User</option>
+          <option value="admin"     <?= $role_f==='admin'?'selected':'' ?>>Admin</option>
+          <option value="developer" <?= $role_f==='developer'?'selected':'' ?>>Developer</option>
+        </select>
+        <button class="btn btn-primary btn-sm"><?= icon('filter', 14) ?></button>
+        <?php if ($search || $role_f): ?>
+          <a href="?" class="btn btn-light btn-sm"><?= icon('x', 14) ?></a>
+        <?php endif; ?>
+      </form>
     </div>
-    <div class="form-group" style="margin-bottom:0;min-width:140px">
-      <select name="role" class="form-control">
-        <option value="">— <?= t('role') ?> —</option>
-        <option value="user"      <?= $role_f==='user'?'selected':'' ?>>User</option>
-        <option value="admin"     <?= $role_f==='admin'?'selected':'' ?>>Admin</option>
-        <option value="developer" <?= $role_f==='developer'?'selected':'' ?>>Developer</option>
-      </select>
-    </div>
-    <button class="btn btn-primary"><?= icon('search', 14) ?> <?= t('search') ?></button>
-    <?php if ($search || $role_f): ?>
-      <a href="?" class="btn btn-ghost"><?= icon('x', 14) ?></a>
-    <?php endif; ?>
-  </form>
 
-  <div class="card" style="padding:0">
-    <div class="table-wrap table-flat">
+    <?php if (empty($users)): ?>
+      <div class="empty-state-v2">
+        <div class="empty-state-v2-icon"><?= icon('users', 32) ?></div>
+        <h3><?= lang()==='uz_cyrillic' ? "Фойдаланувчилар топилмади" : "Foydalanuvchilar topilmadi" ?></h3>
+        <p><?= lang()==='uz_cyrillic' ? "Қидирув шартларини ўзгартириб қайта уриниб кўринг" : "Qidiruv shartlarini o'zgartirib qayta urinib ko'ring" ?></p>
+        <button type="button" class="btn btn-primary" onclick='openUserModal({})'><?= icon('plus', 14) ?> <?= t('add') ?></button>
+      </div>
+    <?php else: ?>
+    <div class="data-table-body" style="overflow-x:auto">
       <table>
         <thead>
           <tr>
-            <th>#</th><th><?= t('name') ?></th><th><?= t('email') ?></th>
-            <th><?= t('phone') ?></th><th><?= t('role') ?></th>
-            <th><?= t('status') ?></th><th><?= t('date') ?></th><th><?= t('actions') ?></th>
+            <th><?= t('name') ?></th>
+            <th><?= lang()==='uz_cyrillic' ? "Алоқа" : "Aloqa" ?></th>
+            <th><?= t('role') ?></th>
+            <th><?= t('status') ?></th>
+            <th><?= t('date') ?></th>
+            <th style="text-align:right"><?= t('actions') ?></th>
           </tr>
         </thead>
         <tbody>
-          <?php foreach ($users as $u): ?>
+          <?php foreach ($users as $row):
+            $cls = $row['status']==='active'?'success':($row['status']==='blocked'?'danger':'warning');
+            $role_cls = $row['role']==='admin'?'violet':($row['role']==='developer'?'cyan':'info');
+          ?>
           <tr>
-            <td>#<?= $u['id'] ?></td>
             <td>
-              <div class="flex items-center" style="gap:10px">
-                <?php if (!empty($u['avatar'])): ?>
-                  <img src="<?= e($u['avatar']) ?>" style="width:34px;height:34px;border-radius:50%;object-fit:cover">
-                <?php else: ?>
-                  <div class="review-avatar" style="width:34px;height:34px;font-size:13px"><?= mb_substr($u['first_name'],0,1) ?></div>
-                <?php endif; ?>
-                <strong><?= e($u['first_name'].' '.$u['last_name']) ?></strong>
+              <div class="data-cell-user">
+                <div class="data-cell-user-avatar">
+                  <?php if (!empty($row['avatar'])): ?>
+                    <img src="<?= e($row['avatar']) ?>" alt="">
+                  <?php else: ?>
+                    <?= mb_strtoupper(mb_substr($row['first_name'],0,1)) ?>
+                  <?php endif; ?>
+                </div>
+                <div class="data-cell-user-info">
+                  <div class="data-cell-user-name"><?= e($row['first_name'].' '.$row['last_name']) ?></div>
+                  <div class="data-cell-user-meta">#<?= $row['id'] ?> · <?= e($row['referral_code'] ?? '') ?></div>
+                </div>
               </div>
             </td>
-            <td><?= e($u['email']) ?></td>
-            <td><?= e($u['phone']) ?></td>
-            <td><span class="badge badge-info"><?= e($u['role']) ?></span></td>
             <td>
-              <?php $cls = $u['status']==='active'?'success':($u['status']==='blocked'?'danger':'warning'); ?>
-              <span class="badge badge-<?= $cls ?>"><?= e($u['status']) ?></span>
+              <?php if ($row['email']): ?><div class="data-cell-mono"><?= e($row['email']) ?></div><?php endif; ?>
+              <?php if ($row['phone']): ?><div class="data-cell-mono" style="font-size:12px;color:var(--text-mute)"><?= e($row['phone']) ?></div><?php endif; ?>
             </td>
-            <td style="white-space:nowrap"><?= date('d.m.Y', strtotime($u['created_at'])) ?></td>
+            <td><span class="badge-soft <?= $role_cls ?>"><?= e($row['role']) ?></span></td>
+            <td><span class="badge-soft <?= $cls ?>"><?= e($row['status']) ?></span></td>
+            <td><span class="data-cell-mono"><?= date('d.m.Y', strtotime($row['created_at'])) ?></span></td>
             <td>
-              <div class="flex" style="gap:4px;flex-wrap:nowrap">
-                <button type="button" class="btn btn-light btn-sm" title="Tahrirlash"
-                        onclick='openUserModal(<?= json_encode($u, JSON_HEX_APOS|JSON_HEX_QUOT|JSON_UNESCAPED_UNICODE) ?>)'>
-                  <?= icon('edit', 12) ?>
-                </button>
-                <?php if ($u['status']==='active' && $u['role'] !== 'admin'): ?>
-                <form method="post" style="display:inline" onsubmit="return confirm('Bloklaymi?')">
+              <div class="data-cell-actions" style="justify-content:flex-end">
+                <button type="button" class="btn btn-light btn-icon btn-sm"
+                        onclick='openUserModal(<?= json_encode($row, JSON_HEX_APOS|JSON_HEX_QUOT|JSON_UNESCAPED_UNICODE) ?>)'
+                        title="<?= lang()==='uz_cyrillic' ? "Таҳрирлаш" : "Tahrirlash" ?>"><?= icon('edit', 14) ?></button>
+                <?php if ($row['status']==='active' && $row['role'] !== 'admin'): ?>
+                <form method="post" style="display:inline" onsubmit="return confirm('<?= lang()==='uz_cyrillic' ? "Блоклайсизми?" : "Bloklaysizmi?" ?>')">
                   <?= csrf_field() ?>
                   <input type="hidden" name="action" value="block">
-                  <input type="hidden" name="id" value="<?= $u['id'] ?>">
-                  <button class="btn btn-light btn-sm" style="color:var(--warning-dark)" title="Bloklash">
-                    <?= icon('lock', 12) ?>
-                  </button>
+                  <input type="hidden" name="id" value="<?= $row['id'] ?>">
+                  <button class="btn btn-light btn-icon btn-sm" style="color:var(--warning-dark)" title="<?= lang()==='uz_cyrillic' ? "Блоклаш" : "Bloklash" ?>"><?= icon('ban', 14) ?></button>
                 </form>
-                <?php elseif ($u['status']==='blocked'): ?>
+                <?php elseif ($row['status']==='blocked'): ?>
                 <form method="post" style="display:inline">
                   <?= csrf_field() ?>
                   <input type="hidden" name="action" value="unblock">
-                  <input type="hidden" name="id" value="<?= $u['id'] ?>">
-                  <button class="btn btn-light btn-sm" style="color:var(--success-dark)" title="Faollashtirish">
-                    <?= icon('unlock', 12) ?>
-                  </button>
+                  <input type="hidden" name="id" value="<?= $row['id'] ?>">
+                  <button class="btn btn-light btn-icon btn-sm" style="color:var(--success-dark)" title="<?= lang()==='uz_cyrillic' ? "Фаоллаштириш" : "Faollashtirish" ?>"><?= icon('check-circle', 14) ?></button>
                 </form>
                 <?php endif; ?>
-                <?php if ($u['role'] !== 'admin'): ?>
+                <?php if ($row['role'] !== 'admin'): ?>
                 <form method="post" style="display:inline" onsubmit="return confirm('<?= t('confirm_delete') ?>')">
                   <?= csrf_field() ?>
                   <input type="hidden" name="action" value="delete">
-                  <input type="hidden" name="id" value="<?= $u['id'] ?>">
-                  <button class="btn btn-light btn-sm" style="color:var(--danger)" title="O'chirish">
-                    <?= icon('trash', 12) ?>
-                  </button>
+                  <input type="hidden" name="id" value="<?= $row['id'] ?>">
+                  <button class="btn btn-light btn-icon btn-sm" style="color:var(--danger)" title="<?= lang()==='uz_cyrillic' ? "Ўчириш" : "O'chirish" ?>"><?= icon('trash', 14) ?></button>
                 </form>
                 <?php endif; ?>
               </div>
             </td>
           </tr>
           <?php endforeach; ?>
-          <?php if (empty($users)): ?>
-            <tr><td colspan="8" class="text-center" style="padding:40px;color:var(--text-soft)">Topilmadi</td></tr>
-          <?php endif; ?>
         </tbody>
       </table>
     </div>
+    <?php endif; ?>
   </div>
+
 </main>
 </div>
 
@@ -288,4 +312,5 @@ function openUserModal(u){
   openModal('userModal');
 }
 </script>
+<script><?= panel_js() ?></script>
 </body></html>

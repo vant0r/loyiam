@@ -1,33 +1,60 @@
-# VatanParvar Yaypan - Apache config
+# VatanParvar Yaypan — Apache config (sodda, ishonchli)
+#
+# Murakkab xavfsizlik logikasi PHP qatlamida:
+#   includes/scrape_guard.php (UA blokirovkasi, honeypot, burst limit)
+#   includes/security.php (CSRF, rate limit, session, headers)
+#
+# Bu yerda faqat fayl/papka darajasidagi himoya:
 
-# UTF-8
 AddDefaultCharset UTF-8
-
-# Default index
 DirectoryIndex index.php index.html
-
-# Disable directory listing
 Options -Indexes
 
-# Block access to includes/ and sql/
-<FilesMatch "\.(sql|md|log)$">
+# ============================================================
+# Maxfiy fayllarga kirishni taqiqlash
+# ============================================================
+<FilesMatch "\.(sql|md|log|env|lock|bak|backup|swp|orig|old)$">
     Require all denied
 </FilesMatch>
 
-<DirectoryMatch "/(includes|sql)/">
+# Yashirin fayllar (.htaccess, .git, .env, .DS_Store, va h.k.)
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# Ichki katalog/papkalarga kirish taqiqlangan
+<DirectoryMatch "/(includes|sql|cache)/">
     Require all denied
 </DirectoryMatch>
 
-# Cache static assets
+# ============================================================
+# Static asset caching (sodda)
+# ============================================================
 <IfModule mod_expires.c>
     ExpiresActive On
     ExpiresByType image/jpeg "access plus 1 month"
     ExpiresByType image/png "access plus 1 month"
     ExpiresByType image/webp "access plus 1 month"
     ExpiresByType image/svg+xml "access plus 1 month"
+    ExpiresByType image/x-icon "access plus 1 year"
+    ExpiresByType font/woff2 "access plus 1 year"
+    ExpiresByType text/css "access plus 1 week"
+    ExpiresByType application/javascript "access plus 1 week"
 </IfModule>
 
+# ============================================================
 # Compression
+# ============================================================
 <IfModule mod_deflate.c>
-    AddOutputFilterByType DEFLATE text/html text/css application/javascript text/plain
+    AddOutputFilterByType DEFLATE text/html text/css text/javascript application/javascript application/json text/plain image/svg+xml
+</IfModule>
+
+# ============================================================
+# Service worker — cache ishlatmaslik
+# ============================================================
+<IfModule mod_headers.c>
+    <FilesMatch "sw\.js$">
+        Header set Cache-Control "no-cache, no-store, must-revalidate"
+    </FilesMatch>
+    Header unset X-Powered-By
 </IfModule>

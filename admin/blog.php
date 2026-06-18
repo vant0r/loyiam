@@ -1,5 +1,6 @@
 <?php
-require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/bootstrap.php';
+auth_class();
 require_admin();
 
 $msg = flash('msg');
@@ -86,7 +87,7 @@ $posts = db()->fetchAll("SELECT * FROM blog_posts WHERE $where ORDER BY created_
 render_head(t('blog'));
 ?>
 <div class="layout">
-<?php render_sidebar('admin','blog'); ?>
+<?= panel_sidebar('admin', 'blog') ?>
 <main class="main">
   <div class="page-header">
     <div class="page-title"><?= icon('edit', 28) ?> <?= t('blog') ?></div>
@@ -249,4 +250,5 @@ function openEditModal(p){
   openModal('editModal');
 }
 </script>
+<script><?= panel_js() ?></script>
 </body></html>

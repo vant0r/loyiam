@@ -1,5 +1,6 @@
 <?php
-require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/bootstrap.php';
+auth_class();
 require_developer();
 
 $msg = '';
@@ -61,10 +62,23 @@ $endpoints = [
     ['POST',  '/admin/sozlamalar.php','Sozlamalar saqlash',       ['action=save_group|logo|banner']],
 ];
 
-render_head('Developer Panel');
+?><!DOCTYPE html>
+<html lang="<?= lang() === 'uz_cyrillic' ? 'uz-Cyrl' : 'uz' ?>">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#3B82F6">
+<title><?= e('Developer Panel') ?> — <?= e(setting('site_name', SITE_NAME)) ?></title>
+<link rel="icon" type="image/svg+xml" href="<?= e(setting('site_logo', '/assets/images/logo.svg')) ?>">
+<style>
+<?= base_css() ?>
+<?= panel_css() ?>
+</style>
+</head>
+<body>
 ?>
 <div class="layout">
-<?php render_sidebar('developer','dashboard'); ?>
+<?= panel_sidebar('developer', 'dashboard') ?>
 <main class="main">
   <div class="page-header">
     <div>
@@ -238,7 +252,7 @@ render_head('Developer Panel');
       <div class="card" style="background:var(--bg-soft)">
         <h4 style="font-weight:700;margin-bottom:10px">Sessions</h4>
         <div style="font-family:monospace;font-size:12px;line-height:1.8">
-          Session ID: <code><?= e(session_id()) ?></code><br>
+          Session ID: <code><?= e(substr(session_id(), 0, 8) . '...' . substr(session_id(), -4)) ?></code><br>
           User ID: <code><?= $_SESSION['user_id'] ?? '—' ?></code><br>
           Role: <code><?= $_SESSION['user_role'] ?? '—' ?></code><br>
           Lang: <code><?= e(lang()) ?></code>
@@ -248,4 +262,5 @@ render_head('Developer Panel');
   </div>
 </main>
 </div>
+<script><?= panel_js() ?></script>
 </body></html>

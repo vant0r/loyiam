@@ -37,11 +37,23 @@ $REQUIRED_TABLES = [
 ];
 
 // ==========================================================
-// AGAR ALLAQACHON O'RNATILGAN BO'LSA
+// AGAR ALLAQACHON O'RNATILGAN BO'LSA — QAT'IY BLOK
 // ==========================================================
 $alreadyInstalled = is_file(INSTALL_LOCK);
-if ($alreadyInstalled && !isset($_GET['force'])) {
-    show_already_installed();
+if ($alreadyInstalled) {
+    // ?force=1 escape hatch OLIB TASHLANDI (security audit topgan zaiflik).
+    // Qayta o'rnatish uchun .installed faylini SSH/FTP orqali o'chirish kerak.
+    http_response_code(403);
+    header('Content-Type: text/html; charset=utf-8');
+    echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Already installed</title>';
+    echo '<style>body{font-family:system-ui;max-width:600px;margin:60px auto;padding:24px;line-height:1.6;color:#0F172A}';
+    echo '.box{background:#FEE2E2;border:1px solid #FCA5A5;border-radius:12px;padding:20px;color:#991B1B}';
+    echo 'code{background:#fff;padding:2px 8px;border-radius:4px;font-size:13px}</style></head><body>';
+    echo '<h1>Tizim o\'rnatilgan</h1>';
+    echo '<div class="box"><strong>Xavfsizlik sababli</strong> install.php endi ishlamaydi.<br>';
+    echo 'Qayta o\'rnatish uchun <code>.installed</code> faylini server orqali o\'chiring.</div>';
+    echo '<p style="margin-top:20px"><a href="/">← Bosh sahifa</a></p>';
+    echo '</body></html>';
     exit;
 }
 
@@ -567,6 +579,48 @@ code{background:#F1F5F9;padding:2px 6px;border-radius:4px;font-family:'Courier N
 .confetti{position:fixed;width:10px;height:10px;pointer-events:none;z-index:1000;border-radius:2px}
 @keyframes confetti{0%{transform:translateY(-10vh) rotate(0);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
 .section-divider{margin:24px 0 14px;padding-bottom:8px;border-bottom:2px solid #F1F5F9;font-size:13px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.05em;display:flex;align-items:center;gap:8px}
+
+/* MOBILE-FIRST OVERRIDES v3.0 — install.php */
+@media (max-width:720px){
+  body{padding:16px 12px}
+  .wrap{max-width:100%}
+  .brand{margin-bottom:24px;font-size:16px;gap:10px}
+  .brand-icon{width:42px;height:42px;font-size:15px;border-radius:12px}
+  .brand small{font-size:10px}
+  .steps{margin-bottom:24px;padding:0 4px}
+  .step-num{width:32px;height:32px;font-size:12px}
+  .step::after{top:16px}
+  .card{padding:24px 18px;border-radius:16px}
+  h1{font-size:22px}
+  h2{font-size:20px}
+  .subtitle{font-size:14px;margin-bottom:22px}
+  .alert{padding:13px 14px;border-radius:10px;font-size:13px;gap:10px}
+  .alert-icon{width:22px;height:22px;font-size:12px}
+  .form-group{margin-bottom:14px}
+  .form-group label{font-size:12px;margin-bottom:5px}
+  .form-control{padding:12px 12px;border-radius:10px;font-size:16px;min-height:48px}
+  .form-row{grid-template-columns:1fr;gap:0}
+  .actions{flex-direction:column;gap:8px;margin-top:18px}
+  .actions .btn{width:100%;justify-content:center}
+  .btn{padding:13px 18px;font-size:13px;border-radius:10px;min-height:48px}
+  .req-list li{padding:10px 14px;font-size:13px;gap:8px}
+  .req-list .name{font-size:13px}
+  .req-list .value{font-size:11px}
+  .req-status{width:22px;height:22px;font-size:11px}
+  .install-icon{width:64px;height:64px;font-size:32px;margin-bottom:16px}
+}
+@media (max-width:480px){
+  body{padding:12px 8px}
+  .card{padding:20px 14px;border-radius:14px}
+  h1{font-size:20px}
+  .step-label{display:none !important}
+  .brand{font-size:15px}
+}
+@media (hover:none){
+  .btn:hover,.btn-primary:hover,.btn-success:hover,.btn-outline:hover{
+    transform:none !important;
+  }
+}
 </style>
 </head>
 <body>

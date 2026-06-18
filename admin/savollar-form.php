@@ -1,5 +1,6 @@
 <?php
-require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/bootstrap.php';
+auth_class();
 require_admin();
 
 $id = (int)($_GET['id'] ?? 0);
@@ -96,7 +97,7 @@ foreach ($answers as $i => $a) {
 render_head($isEdit ? t('edit') : t('add'));
 ?>
 <div class="layout">
-<?php render_sidebar('admin','questions'); ?>
+<?= panel_sidebar('admin', 'questions') ?>
 <main class="main">
   <div class="page-header">
     <div>
@@ -245,4 +246,5 @@ render_head($isEdit ? t('edit') : t('add'));
   });
 })();
 </script>
+<script><?= panel_js() ?></script>
 </body></html>

@@ -1,5 +1,6 @@
 <?php
-require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/bootstrap.php';
+auth_class();
 require_admin();
 
 // Eksport
@@ -70,93 +71,117 @@ $actions = db()->fetchAll("SELECT action, COUNT(*) c FROM logs GROUP BY action O
 render_head(t('logs'));
 ?>
 <div class="layout">
-<?php render_sidebar('admin','logs'); ?>
+<?= panel_sidebar('admin', 'logs') ?>
 <main class="main">
-  <div class="page-header">
+
+  <div class="page-header-modern">
     <div>
-      <div class="page-title"><?= icon('logs', 28) ?> <?= t('logs') ?></div>
-      <div class="page-subtitle">Jami: <?= $total ?> ta yozuv</div>
+      <div class="page-eyebrow"><?= icon('logs', 12) ?> <?= lang()==='uz_cyrillic' ? "Тизим тарихи" : "Tizim tarixi" ?></div>
+      <h1><?= t('logs') ?></h1>
+      <div class="page-subtitle"><?= lang()==='uz_cyrillic' ? "Жами" : "Jami" ?> <strong><?= number_format($total) ?></strong> <?= lang()==='uz_cyrillic' ? "ёзув" : "yozuv" ?></div>
     </div>
-    <div class="flex gap-2">
-      <a href="?<?= http_build_query(array_merge($_GET, ['export'=>'csv'])) ?>" class="btn btn-light"><?= icon('download', 14) ?> CSV</a>
-      <button class="btn btn-danger" data-modal-open="clearModal"><?= icon('trash', 14) ?> Tozalash</button>
+    <div class="page-toolbar">
+      <a href="?<?= http_build_query(array_merge($_GET, ['export'=>'csv'])) ?>" class="btn btn-light btn-sm"><?= icon('download', 14) ?> CSV</a>
+      <button class="btn btn-danger btn-sm" data-modal-open="clearModal"><?= icon('trash', 14) ?> <?= lang()==='uz_cyrillic' ? "Тозалаш" : "Tozalash" ?></button>
     </div>
   </div>
 
-  <?php if ($msg): ?><div class="alert alert-success"><?= e($msg) ?></div><?php endif; ?>
+  <?php if ($msg): ?><div class="alert alert-success"><?= icon('check-circle', 18) ?> <?= e($msg) ?></div><?php endif; ?>
 
   <!-- Filter -->
-  <form method="get" class="card mb-3" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end">
-    <div class="form-group" style="margin-bottom:0;min-width:160px">
-      <label class="form-label">Action</label>
-      <select name="action" class="form-control">
-        <option value="">— —</option>
-        <?php foreach ($actions as $a): ?>
-          <option value="<?= e($a['action']) ?>" <?= $action_f===$a['action']?'selected':'' ?>>
-            <?= e($a['action']) ?> (<?= $a['c'] ?>)
-          </option>
-        <?php endforeach; ?>
-      </select>
+  <div class="section-card mb-3">
+    <div class="section-card-head">
+      <div class="section-card-title"><?= icon('filter', 16) ?> <?= lang()==='uz_cyrillic' ? "Филтр" : "Filtr" ?></div>
+      <?php if ($action_f || $level_f || $from || $to || $user_f): ?>
+        <a href="?" class="chip"><?= icon('x', 12) ?> <?= lang()==='uz_cyrillic' ? "Тозалаш" : "Tozalash" ?></a>
+      <?php endif; ?>
     </div>
-    <div class="form-group" style="margin-bottom:0;min-width:120px">
-      <label class="form-label">Level</label>
-      <select name="level" class="form-control">
-        <option value="">— —</option>
-        <option value="info"     <?= $level_f==='info'?'selected':'' ?>>Info</option>
-        <option value="warning"  <?= $level_f==='warning'?'selected':'' ?>>Warning</option>
-        <option value="error"    <?= $level_f==='error'?'selected':'' ?>>Error</option>
-        <option value="critical" <?= $level_f==='critical'?'selected':'' ?>>Critical</option>
-      </select>
-    </div>
-    <div class="form-group" style="margin-bottom:0">
-      <label class="form-label"><?= t('from') ?></label>
-      <input type="date" name="from" class="form-control" value="<?= e($from) ?>">
-    </div>
-    <div class="form-group" style="margin-bottom:0">
-      <label class="form-label"><?= t('to') ?></label>
-      <input type="date" name="to" class="form-control" value="<?= e($to) ?>">
-    </div>
-    <div class="form-group flex-1" style="margin-bottom:0;min-width:160px">
-      <label class="form-label">User</label>
-      <input type="text" name="user" class="form-control" value="<?= e($user_f) ?>" placeholder="<?= t('search') ?>">
-    </div>
-    <button class="btn btn-primary"><?= icon('filter', 14) ?> <?= t('filter') ?></button>
-    <a href="?" class="btn btn-ghost"><?= icon('x', 14) ?></a>
-  </form>
-
-  <!-- List -->
-  <div class="card" style="padding:0">
-    <div class="table-wrap table-flat">
-      <table>
-        <thead><tr><th>ID</th><th><?= lang()==='uz_cyrillic' ? "Фойдаланувчи" : "Foydalanuvchi" ?></th><th>Action</th><th>Tavsif</th><th>IP</th><th>Level</th><th>Sana</th></tr></thead>
-        <tbody>
-          <?php if (empty($logs)): ?>
-            <tr><td colspan="7" class="text-center" style="padding:40px;color:var(--text-soft)"><?= t('no_data') ?></td></tr>
-          <?php else: foreach ($logs as $l): ?>
-          <tr>
-            <td>#<?= $l['id'] ?></td>
-            <td>
-              <?php if ($l['user_id']): ?>
-                <strong><?= e($l['first_name'] ?? '—') ?></strong>
-                <div class="text-mute" style="font-size:11px">ID: <?= $l['user_id'] ?></div>
-              <?php else: ?>—<?php endif; ?>
-            </td>
-            <td><code style="background:var(--bg-mute);padding:3px 8px;border-radius:4px;font-size:12px"><?= e($l['action']) ?></code></td>
-            <td style="max-width:300px"><?= e(mb_substr($l['description'] ?? '', 0, 100)) ?></td>
-            <td style="font-family:monospace;font-size:12px"><?= e($l['ip_address']) ?></td>
-            <td>
-              <?php $cls = ['info'=>'info','warning'=>'warning','error'=>'danger','critical'=>'danger'][$l['level']] ?? 'mute'; ?>
-              <span class="badge badge-<?= $cls ?>"><?= e($l['level']) ?></span>
-            </td>
-            <td style="font-size:12px;white-space:nowrap"><?= date('d.m.Y H:i:s', strtotime($l['created_at'])) ?></td>
-          </tr>
-          <?php endforeach; endif; ?>
-        </tbody>
-      </table>
+    <div class="section-card-body">
+      <form method="get" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));gap:12px;align-items:end">
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Action</label>
+          <select name="action" class="form-control">
+            <option value="">— —</option>
+            <?php foreach ($actions as $a): ?>
+              <option value="<?= e($a['action']) ?>" <?= $action_f===$a['action']?'selected':'' ?>><?= e($a['action']) ?> (<?= $a['c'] ?>)</option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Level</label>
+          <select name="level" class="form-control">
+            <option value="">— —</option>
+            <option value="info"     <?= $level_f==='info'?'selected':'' ?>>Info</option>
+            <option value="warning"  <?= $level_f==='warning'?'selected':'' ?>>Warning</option>
+            <option value="error"    <?= $level_f==='error'?'selected':'' ?>>Error</option>
+            <option value="critical" <?= $level_f==='critical'?'selected':'' ?>>Critical</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label"><?= t('from') ?></label>
+          <input type="date" name="from" class="form-control" value="<?= e($from) ?>">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label"><?= t('to') ?></label>
+          <input type="date" name="to" class="form-control" value="<?= e($to) ?>">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">User</label>
+          <input type="text" name="user" class="form-control" value="<?= e($user_f) ?>" placeholder="<?= t('search') ?>">
+        </div>
+        <button class="btn btn-primary"><?= icon('filter', 14) ?> <?= t('filter') ?></button>
+      </form>
     </div>
   </div>
 
-  <!-- Pagination -->
+  <!-- Log feed -->
+  <div class="section-card">
+    <div class="section-card-head">
+      <div class="section-card-title"><?= icon('logs', 16) ?> <?= lang()==='uz_cyrillic' ? "Ёзувлар" : "Yozuvlar" ?> <span class="count-pill"><?= count($logs) ?></span></div>
+      <span class="text-mute" style="font-size:12px"><?= lang()==='uz_cyrillic' ? "Саҳифа" : "Sahifa" ?> <?= $page ?> / <?= $totalPages ?></span>
+    </div>
+    <div class="section-card-body flush">
+      <?php if (empty($logs)): ?>
+        <div class="empty-state-v2">
+          <div class="empty-state-v2-icon"><?= icon('logs', 32) ?></div>
+          <h3><?= t('no_data') ?></h3>
+        </div>
+      <?php else:
+        $level_icons = [
+          'info'=>['info','primary-dark'],
+          'warning'=>['flame','warning-dark'],
+          'error'=>['x-circle','danger-dark'],
+          'critical'=>['flame','danger-dark'],
+        ];
+        $level_classes = ['info'=>'info','warning'=>'warning','error'=>'danger','critical'=>'danger'];
+        foreach ($logs as $l):
+          $lvl = $l['level'] ?? 'info';
+          $lvl_cls = $level_classes[$lvl] ?? 'mute';
+      ?>
+        <div class="log-row">
+          <div class="log-id">#<?= $l['id'] ?></div>
+          <div>
+            <?php if ($l['user_id']): ?>
+              <div style="font-weight:600;font-size:13px"><?= e($l['first_name'] ?? '—') ?></div>
+              <div class="text-mute" style="font-size:11px">ID: <?= $l['user_id'] ?></div>
+            <?php else: ?>
+              <span class="text-mute">—</span>
+            <?php endif; ?>
+          </div>
+          <div>
+            <span class="log-action"><code><?= e($l['action']) ?></code></span>
+            <?php if (!empty($l['description'])): ?>
+              <div class="log-desc"><?= e(mb_substr($l['description'] ?? '', 0, 140)) ?></div>
+            <?php endif; ?>
+          </div>
+          <div class="log-ip"><?= e($l['ip_address'] ?? '—') ?></div>
+          <div><span class="badge-soft <?= $lvl_cls ?>"><?= e($lvl) ?></span></div>
+          <div class="log-time"><?= date('d.m.Y H:i:s', strtotime($l['created_at'])) ?></div>
+        </div>
+      <?php endforeach; endif; ?>
+    </div>
+  </div>
+
   <?php if ($totalPages > 1): ?>
   <div class="pagination">
     <?php if ($page > 1): ?><a href="?<?= http_build_query(array_merge($_GET,['page'=>$page-1])) ?>"><?= icon('chevron-left',16) ?></a><?php endif; ?>
@@ -170,33 +195,34 @@ render_head(t('logs'));
     <?php if ($page < $totalPages): ?><a href="?<?= http_build_query(array_merge($_GET,['page'=>$page+1])) ?>"><?= icon('chevron-right',16) ?></a><?php endif; ?>
   </div>
   <?php endif; ?>
+
 </main>
 </div>
 
-<!-- Clear modal -->
 <div id="clearModal" class="modal-backdrop">
   <div class="modal">
-    <div class="modal-header"><h3 class="modal-title">Eski loglarni tozalash</h3><button class="modal-close" data-modal-close>&times;</button></div>
+    <div class="modal-header"><h3 class="modal-title"><?= lang()==='uz_cyrillic' ? "Эски логларни тозалаш" : "Eski loglarni tozalash" ?></h3><button class="modal-close" data-modal-close>&times;</button></div>
     <form method="post">
       <?= csrf_field() ?>
       <input type="hidden" name="action" value="clear_old">
       <div class="modal-body">
-        <div class="alert alert-warning"><?= icon('flame',18) ?> Bu amal qaytarilmaydi!</div>
+        <div class="alert alert-warning"><?= icon('flame',18) ?> <?= lang()==='uz_cyrillic' ? "Бу амал қайтарилмайди!" : "Bu amal qaytarilmaydi!" ?></div>
         <div class="form-group">
-          <label class="form-label">Necha kundan eski loglar o'chirilsin?</label>
+          <label class="form-label"><?= lang()==='uz_cyrillic' ? "Неча кундан эски логлар ўчирилсин?" : "Necha kundan eski loglar o'chirilsin?" ?></label>
           <select name="days" class="form-control">
-            <option value="7">7 kundan eski</option>
-            <option value="30" selected>30 kundan eski</option>
-            <option value="90">90 kundan eski</option>
-            <option value="365">1 yildan eski</option>
+            <option value="7">7 <?= lang()==='uz_cyrillic' ? "кундан эски" : "kundan eski" ?></option>
+            <option value="30" selected>30 <?= lang()==='uz_cyrillic' ? "кундан эски" : "kundan eski" ?></option>
+            <option value="90">90 <?= lang()==='uz_cyrillic' ? "кундан эски" : "kundan eski" ?></option>
+            <option value="365">1 <?= lang()==='uz_cyrillic' ? "йилдан эски" : "yildan eski" ?></option>
           </select>
         </div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-light" data-modal-close><?= t('cancel') ?></button>
-        <button class="btn btn-danger" type="submit">O'chirish</button>
+        <button class="btn btn-danger" type="submit"><?= icon('trash',14) ?> <?= lang()==='uz_cyrillic' ? "Ўчириш" : "O'chirish" ?></button>
       </div>
     </form>
   </div>
 </div>
+<script><?= panel_js() ?></script>
 </body></html>

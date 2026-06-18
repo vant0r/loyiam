@@ -1,5 +1,6 @@
 <?php
-require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/bootstrap.php';
+auth_class();
 require_admin();
 
 $lang_field = lang() === 'uz_cyrillic' ? 'cyrillic' : 'latin';
@@ -131,7 +132,7 @@ unset($q);
 render_head(t('questions'));
 ?>
 <div class="layout">
-<?php render_sidebar('admin','questions'); ?>
+<?= panel_sidebar('admin', 'questions') ?>
 <main class="main">
   <div class="page-header">
     <div>
@@ -241,6 +242,20 @@ render_head(t('questions'));
   border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--text-soft)}
 .q-letter.is-correct{background:var(--success);color:#fff;border-color:var(--success)}
 @media(max-width:640px){.q-grid{grid-template-columns:1fr}}
+@media(max-width:880px){
+  .q-grid{grid-template-columns:repeat(auto-fill,minmax(min(320px,100%),1fr));gap:12px}
+  .q-card{border-radius:12px}
+  .q-image{aspect-ratio:16/10}
+  .q-body{padding:14px}
+  .q-text{font-size:13px;margin-bottom:10px}
+  .q-answers li{padding:6px 8px;font-size:12px;gap:6px}
+  .q-letter{width:20px;height:20px;font-size:10px}
+}
+@media(max-width:480px){
+  .q-grid{gap:10px}
+  .q-body{padding:12px}
+  .q-text{font-size:13px;-webkit-line-clamp:2}
+}
 </style>
 
 <div id="qModal" class="modal-backdrop">
@@ -345,6 +360,12 @@ render_head(t('questions'));
 .answer-radio input:checked + .answer-letter-form{background:var(--success);color:#fff;border-color:var(--success)}
 .answer-inputs{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:8px}
 @media(max-width:640px){.answer-inputs{grid-template-columns:1fr}}
+@media(max-width:880px){
+  .answer-item-form{padding:10px;gap:10px;border-radius:10px}
+  .answer-letter-form{width:32px;height:32px;font-size:13px}
+  .answer-inputs{gap:6px}
+  .answer-inputs input{min-height:44px;font-size:16px}
+}
 </style>
 
 <div id="csvModal" class="modal-backdrop">
@@ -406,4 +427,5 @@ function openQModal(q){
   openModal('qModal');
 }
 </script>
+<script><?= panel_js() ?></script>
 </body></html>

@@ -1,5 +1,6 @@
 <?php
-require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/bootstrap.php';
+auth_class();
 require_login();
 
 $u = current_user();
@@ -126,7 +127,7 @@ $selectedTariff = (int)($_GET['tariff'] ?? 0);
 render_head(t('tariffs'));
 ?>
 <div class="layout">
-<?php render_sidebar('user', 'tariffs'); ?>
+<?= panel_sidebar('user', 'tariffs') ?>
 <main class="main">
   <div class="page-header">
     <div class="page-title"><?= icon('gem', 28) ?> <?= t('tariffs') ?></div>
@@ -286,6 +287,29 @@ render_head(t('tariffs'));
   .payment-right{margin-left:auto}
   .payment-action{margin-left:auto}
   .ct-content{flex-direction:column;align-items:flex-start;text-align:left}
+}
+
+/* MOBILE-FIRST OVERRIDES v3.0 — tariflar (current banner + payment list) */
+@media(max-width:880px){
+  .current-tariff-banner{padding:18px 18px;border-radius:14px}
+  .ct-icon{width:48px;height:48px;border-radius:12px}
+  .ct-name{font-size:18px;margin:2px 0}
+  .ct-label{font-size:10px}
+  .ct-expires{font-size:11px;padding:4px 10px}
+  .payment-item{padding:12px 14px;gap:10px}
+  .payment-icon{width:38px;height:38px}
+  .payment-title{font-size:13px;margin-bottom:3px}
+}
+@media(max-width:480px){
+  .current-tariff-banner{padding:16px}
+  .ct-content{flex-direction:column;align-items:flex-start;gap:12px}
+  .ct-icon{width:44px;height:44px}
+  .ct-name{font-size:17px}
+  .payment-item{padding:10px 12px;flex-wrap:wrap}
+  .payment-body{flex:1 1 100%;order:2;margin-top:6px}
+  .payment-icon{order:1}
+  .payment-right{order:3;margin-left:auto;flex-direction:row;align-items:center;gap:8px}
+  .payment-action{order:4}
 }
 </style>
 
@@ -473,6 +497,35 @@ render_head(t('tariffs'));
   .payment-card-number{font-size:20px}
   .pay-step{min-width:auto;width:100%}
 }
+
+/* MOBILE-FIRST OVERRIDES v3.0 — payment modal */
+@media(max-width:880px){
+  .amount-display{padding:16px;border-radius:12px}
+  .amount-label{font-size:11px}
+  .amount-value{font-size:30px;margin-top:4px}
+  .method-tabs{gap:6px;margin-bottom:16px}
+  .method-tab{padding:12px 10px;border-width:2px;border-radius:10px;min-height:54px}
+  .method-icon{font-size:24px}
+  .method-name{font-size:13px}
+  .method-badge{font-size:9px;padding:2px 6px}
+  .payment-card{padding:18px;border-radius:12px}
+  .payment-card-label{font-size:10px}
+  .payment-card-number{font-size:18px;letter-spacing:2px;margin:6px 0 10px}
+  .payment-card-holder{font-size:12px;padding-top:10px;margin-top:10px}
+  .pay-steps{gap:8px}
+  .pay-step{padding:10px;font-size:12px;gap:8px}
+  .pay-step-num{width:24px;height:24px;font-size:11px}
+  .image-uploader{min-height:160px}
+  .image-uploader-empty{padding:28px 16px}
+  .image-uploader-empty strong{font-size:13px}
+}
+@media(max-width:480px){
+  .amount-value{font-size:26px}
+  .method-tab{padding:10px 8px;min-height:48px}
+  .method-icon{font-size:20px}
+  .method-name{font-size:12px}
+  .payment-card-number{font-size:16px;letter-spacing:1.5px}
+}
 </style>
 
 <script>
@@ -579,4 +632,5 @@ window.addEventListener('load', () => {
 });
 <?php endif; ?>
 </script>
+<script><?= panel_js() ?></script>
 </body></html>

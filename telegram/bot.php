@@ -19,6 +19,33 @@ require_once __DIR__ . '/api.php';
 require_once __DIR__ . '/../includes/database.php';
 require_once __DIR__ . '/../includes/functions.php';
 
+// ============================================================
+// WEBHOOK SECURITY: BotFather'da setWebhook qilganda secret_token bering.
+// Telegram har bir update bilan birga shu header'ni yuboradi:
+//   X-Telegram-Bot-Api-Secret-Token: <your-secret>
+// Tasdiqlanmagan so'rovlar 401 bilan rad etiladi.
+// ============================================================
+$expectedSecret = (string)setting('telegram_webhook_secret', $_ENV['TELEGRAM_WEBHOOK_SECRET'] ?? '');
+$incomingSecret = $_SERVER['HTTP_X_TELEGRAM_BOT_API_SECRET_TOKEN'] ?? '';
+
+if (empty($expectedSecret)) {
+    // Production'da secret to'ldirilmagan bo'lsa, webhookni umuman qabul qilmaymiz
+    if (defined('APP_DEBUG') && APP_DEBUG) {
+        // Debug rejimida ogohlantirish bilan davom etamiz
+        @error_log("[telegram/bot.php] WARNING: telegram_webhook_secret bo'sh — webhook himoyasiz!");
+    } else {
+        http_response_code(403);
+        @error_log("[telegram/bot.php] BLOCKED: webhook secret bo'sh — production'da xavfsizlik uchun rad etildi");
+        exit;
+    }
+} else {
+    if (empty($incomingSecret) || !hash_equals($expectedSecret, $incomingSecret)) {
+        http_response_code(401);
+        Security::audit('telegram_webhook_unauthorized', 'IP: ' . Security::client_ip(), 'warning');
+        exit;
+    }
+}
+
 // JSON request olish
 $input = file_get_contents('php://input');
 $update = json_decode($input, true);
